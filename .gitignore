@@ -1,0 +1,7 @@
+build/
+*.o
+Z80/*.o
+fMSX/*.o
+fMSX/Unix/*.o
+EMULib/*.o
+EMULib/Unix/*.o

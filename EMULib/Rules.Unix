@@ -6,7 +6,19 @@
 
 include ../../EMULib/Rules.gcc
 
-CFLAGS += -I$(EMULIB)/Unix -I/usr/X11R6/include
-DEFINES+= -DUNIX -DMITSHM -DBPS16 -DPULSE_AUDIO
-LIBS   += -lX11 -lXext -lpulse-simple
-OBJECTS+= $(EMUUNIX)
+UNAME := $(shell uname -s)
+
+# Common flags
+CFLAGS += -I$(EMULIB)/Unix
+DEFINES += -DUNIX -DMITSHM -DBPS16 -DPULSE_AUDIO
+OBJECTS += $(EMUUNIX)
+
+# Platform-specific adjustments
+ifeq ($(UNAME), Darwin)  # macOS (Homebrew)
+    # Homebrew paths (XQuartz & PulseAudio)
+    CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/include/pulse -I/opt/X11/include
+    LIBS += -L/opt/homebrew/lib -L/opt/X11/lib -lX11 -lXext -lpulse-simple -lpulse
+else  # Linux (standard paths)
+    CFLAGS += -I/usr/X11R6/include
+    LIBS += -lX11 -lXext -lpulse-simple
+endif
