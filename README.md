@@ -36,7 +36,7 @@ fMSX is a portable MSX, MSX2, and MSX2+ home computer emulator developed by Mara
 
 ```bash
 git clone https://github.com/lvitals/fMSX.git
-cd fmsx
+cd fMSX
 mkdir build
 cd build
 cmake ..
@@ -68,17 +68,15 @@ Example:
 ## Directory Structure
 
 
-CMakeLists.txt         - Build configuration
-
-DSK/                   - Disk images
-
-EMULib/                - Emulation library core
-
-fMSX/                  - Main emulator code
-
-ROMS/                  - System ROM files (must provide)
-
-Z80/                   - Z80 CPU emulation
+```
+.
+├── CMakeLists.txt         # Build configuration
+├── DSK/                   # Disk images
+├── EMULib/                # Emulation library core
+├── fMSX/                  # Main emulator code
+├── ROMS/                  # System ROM files (must provide)
+└── Z80/                   # Z80 CPU emulation
+```
 
 ## Required ROM Files
 
