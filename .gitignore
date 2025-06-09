@@ -5,3 +5,4 @@ fMSX/*.o
 fMSX/Unix/*.o
 EMULib/*.o
 EMULib/Unix/*.o
+.DS_Store
