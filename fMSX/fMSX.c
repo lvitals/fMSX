@@ -52,7 +52,6 @@ int main(int argc,char *argv[])
 {
   int CartCount,TypeCount;
   int JoyCount,DiskCount[2];
-  char *P;
   int N,J;
 
 #ifdef DEBUG

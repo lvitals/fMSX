@@ -37,8 +37,7 @@ int LoadFileMCF(const char *Name,MCFEntry *Cheats,int MaxCheats)
       Cheats[J].Addr = Addr;
       Cheats[J].Data = Data;
       Cheats[J].Size = Data>0xFFFF? 4:Data>0xFF? 2:1;
-      strncpy(Cheats[J].Note,Note,sizeof(Cheats[J].Note));
-      Cheats[J].Note[sizeof(Cheats[J].Note)-1] = '\0';
+      snprintf(Cheats[J].Note,sizeof(Cheats[J].Note),"%.*s",(int)sizeof(Cheats[J].Note)-1,Note);
       ++J;
     }
 

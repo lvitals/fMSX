@@ -29,6 +29,9 @@
 
 #define FPS_COLOR PIXEL(255,0,255)
 
+int  ARGC    = 0;
+char **ARGV  = 0;
+
 extern int MasterSwitch; /* Switches to turn channels on/off */
 extern int MasterVolume; /* Master volume                    */
 

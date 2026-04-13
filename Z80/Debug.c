@@ -243,8 +243,8 @@ static const char *MnemonicsXCB[256] =
 /*************************************************************/
 static int DAsm(char *S,word A)
 {
-  char R[128],H[10],C,*P;
-  const char *T;
+  char R[128],H[10],C;
+  const char *T,*P;
   byte J,Offset;
   word B;
 
@@ -277,31 +277,34 @@ static int DAsm(char *S,word A)
     strcat(R,H);strcat(R,P+1);
   }
   else strcpy(R,T);
-  if((P=strchr(R,'%'))) *P=C;
+  {
+    char *PP;
+    if((PP=strchr(R,'%'))) *PP=C;
 
-  if((P=strchr(R,'*')))
-  {
-    strncpy(S,R,P-R);S[P-R]='\0';
-    sprintf(H,"%02X",RdZ80(B++));
-    strcat(S,H);strcat(S,P+1);
+    if((PP=strchr(R,'*')))
+    {
+      strncpy(S,R,PP-R);S[PP-R]='\0';
+      sprintf(H,"%02X",RdZ80(B++));
+      strcat(S,H);strcat(S,PP+1);
+    }
+    else if((PP=strchr(R,'@')))
+    {
+      strncpy(S,R,PP-R);S[PP-R]='\0';
+      if(!J) Offset=RdZ80(B++);
+      strcat(S,Offset&0x80? "-":"+");
+      J=Offset&0x80? 256-Offset:Offset;
+      sprintf(H,"%02X",J);
+      strcat(S,H);strcat(S,PP+1);
+    }
+    else if((PP=strchr(R,'#')))
+    {
+      strncpy(S,R,PP-R);S[PP-R]='\0';
+      sprintf(H,"%04X",RdZ80(B)+256*RdZ80(B+1));
+      strcat(S,H);strcat(S,PP+1);
+      B+=2;
+    }
+    else strcpy(S,R);
   }
-  else if((P=strchr(R,'@')))
-  {
-    strncpy(S,R,P-R);S[P-R]='\0';
-    if(!J) Offset=RdZ80(B++);
-    strcat(S,Offset&0x80? "-":"+");
-    J=Offset&0x80? 256-Offset:Offset;
-    sprintf(H,"%02X",J);
-    strcat(S,H);strcat(S,P+1);
-  }
-  else if((P=strchr(R,'#')))
-  {
-    strncpy(S,R,P-R);S[P-R]='\0';
-    sprintf(H,"%04X",RdZ80(B)+256*RdZ80(B+1));
-    strcat(S,H);strcat(S,P+1);
-    B+=2;
-  }
-  else strcpy(S,R);
 
   return(B-A);
 }

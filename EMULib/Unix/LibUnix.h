@@ -59,8 +59,8 @@ extern "C" {
 #define BMASK 0x03
 #endif
 
-static int  ARGC;
-static char **ARGV;
+extern int  ARGC;
+extern char **ARGV;
 
 /** InitUnix() ***********************************************/
 /** Initialize Unix/X11 resources and set initial window.   **/

@@ -2568,7 +2568,7 @@ int AddCheat(const char *Cheat)
 {
   static const char *Hex = "0123456789ABCDEF";
   unsigned int A,D;
-  char *P;
+  const char *P;
   int J,N;
 
   /* Table full: no more cheats */
@@ -3375,7 +3375,8 @@ int LoadCHT(const char *Name)
 int LoadPAL(const char *Name)
 {
   static const char *Hex = "0123456789ABCDEF";
-  char S[256],*P,*T,*H;
+  char S[256],*P,*T;
+  const char *H;
   FILE *F;
   int J,I;
 

@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <errno.h>
+#include <stdint.h>
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -50,7 +51,7 @@ static void *ThrHandler(void *Arg)
 {
   void **Args  = (void **)Arg;
   char *Server = (char *)Args[0];
-  unsigned int Port = (unsigned int)Args[1];
+  unsigned int Port = (unsigned int)(uintptr_t)Args[1];
 
   /* Try connecting */
   NETConnect(Server,Port);
@@ -109,7 +110,7 @@ int NETConnectAsync(const char *Server,unsigned short Port)
 
   /* Set up arguments */
   Args[0] = (void *)(Server? strdup(Server):0);
-  Args[1] = (void *)(unsigned int)Port;
+  Args[1] = (void *)(uintptr_t)Port;
   if(!Args[0]&&Server) return(0);
 
   /* Create connection thread */

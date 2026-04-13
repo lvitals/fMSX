@@ -86,7 +86,7 @@ static int FindFreeCluster(const byte *Dsk,int Start)
 /*************************************************************/
 byte *DSKCreate(byte *Dsk,const char *Label)
 {
-  byte *FAT,*DIR,*DAT;
+  byte *FAT;
 
   /* Allocate memory if needed */
   if(!Dsk)
@@ -95,10 +95,8 @@ byte *DSKCreate(byte *Dsk,const char *Label)
     if(!Dsk) return(0);
   }
 
-  /* FAT and directory pointers */
+  /* FAT pointer */
   FAT = Dsk + DSK_SECTOR_SIZE*(DSK_RESERVED_SECS+1);
-  DIR = FAT + DSK_SECTOR_SIZE*DSK_SECS_PER_FAT*DSK_FATS_PER_DISK;
-  DAT = DIR + DSK_DIR_SIZE*32;
 
   /* Clear disk image */
   memset(Dsk,0x00,DSK_DISK_SIZE);
