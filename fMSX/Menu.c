@@ -609,7 +609,7 @@ void MenuMSX(void)
                     if((M&(1<<J))&&(P=(char *)HUNT2Cheat(J,HUNT_MSX)))
                       for(T=0;P;P=T)
                       {
-                        T=strchr(P,';');
+                        T=(char *)strchr(P,';');
                         if(T) *T++='\0';
                         AddCheat(P);
                       }

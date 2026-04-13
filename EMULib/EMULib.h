@@ -265,25 +265,42 @@ extern int VideoH;             /* Height for ShowVideo()     */
 /*************************************************************/
 extern void (*KeyHandler)(unsigned int Key);
 
+#if defined(WINDOWS) || defined(UNIX) || defined(MAEMO) || defined(MEEGO) || defined(ANDROID)
+#ifndef NewImage
+#define NewImage GenericNewImage
+#endif
+#endif
+
+#if defined(WINDOWS) || defined(UNIX) || defined(MAEMO) || defined(MEEGO)
+#ifndef FreeImage
+#define FreeImage GenericFreeImage
+#endif
+#ifndef CropImage
+#define CropImage GenericCropImage
+#endif
+#endif
+
+#if defined(UNIX) || defined(MAEMO) || defined(MEEGO) || defined(ANDROID)
+#ifndef SetVideo
+#define SetVideo GenericSetVideo
+#endif
+#endif
+
 /** NewImage() ***********************************************/
 /** Create a new image of the given size. Returns pointer   **/
 /** to the image data on success, 0 on failure.             **/
 /*************************************************************/
-pixel *NewImage(Image *Img,int Width,int Height);
+pixel *GenericNewImage(Image *Img,int Width,int Height);
 
 /** FreeImage() **********************************************/
 /** Free previously allocated image.                        **/
 /*************************************************************/
-void FreeImage(Image *Img);
+void GenericFreeImage(Image *Img);
 
 /** CropImage() **********************************************/
 /** Create a subimage Dst of the image Src. Returns Dst.    **/
 /*************************************************************/
-Image *CropImage(Image *Dst,const Image *Src,int X,int Y,int W,int H);
-
-#if defined(WINDOWS) || defined(UNIX) || defined(MAEMO) || defined(MEEGO)
 Image *GenericCropImage(Image *Dst,const Image *Src,int X,int Y,int W,int H);
-#endif
 
 /** ScaleImage() *********************************************/
 /** Copy Src into Dst, scaling as needed.                   **/
@@ -398,11 +415,7 @@ void IMGFillRect(Image *Img,int X,int Y,int W,int H,pixel Color);
 /** SetVideo() ***********************************************/
 /** Set part of the image as "active" for display.          **/
 /*************************************************************/
-void SetVideo(Image *Img,int X,int Y,int W,int H);
-
-#if defined(UNIX) || defined(MAEMO) || defined(MEEGO) || defined(ANDROID)
 void GenericSetVideo(Image *Img,int X,int Y,int W,int H);
-#endif
 
 /** ShowVideo() **********************************************/
 /** Show "active" image at the actual screen or window.     **/

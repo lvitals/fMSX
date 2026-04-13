@@ -24,6 +24,10 @@
 #undef GMASK
 #undef BMASK
 #undef PIXEL
+#undef NewImage
+#undef FreeImage
+#undef CropImage
+#undef SetVideo
 
 #define BPP8
 #define pixel            unsigned char
