@@ -32,6 +32,10 @@
 
 static char SndNameBuf[256];
 
+#define REDRAW_BACKGROUND \
+  if(RefreshLine[ScrMode]) \
+    for(L=0;L<VideoH;++L) RefreshLine[ScrMode](L < (ScanLines212? 212:192)? L : (ScanLines212? 211:191))
+
 extern byte *MemMap[4][4][8];         /* [PPage][SPage][Adr] */
 extern byte *EmptyRAM;                /* Dummy memory area   */
 extern int UseEffects;                /* Video effects       */
@@ -45,6 +49,48 @@ extern int MCFCount;         /* # of entries in MCFEntries[] */
 extern CheatCode CheatCodes[MAXCHEATS];
 extern MCFEntry MCFEntries[MAXCHEATS];
 
+static void RedrawMain(const char *Items,int Selected)
+{
+  const char *P;
+  int I,J,W,H,X,Y,L,Total;
+
+  /* Redraw background */
+  if(RefreshLine[ScrMode])
+    for(L=0;L<VideoH;++L) RefreshLine[ScrMode](L < (ScanLines212? 212:192)? L : (ScanLines212? 211:191));
+
+  /* Compute menu items count and width */
+  for(P=Items,I=0,Total=-1;*P;Total++,P++)
+  {
+    for(J=0;*P;P++,J++);
+    if(J>I) I=J;
+  }
+
+  /* Update menu coordinates and dimensions */
+  J = VideoW>>3;
+  W = I+3;
+  W = W>J-2? J-2:W;
+  X = (J-W)/2;
+
+  J = VideoH>>3;
+  H = Total+3;
+  H = H>J-2? J-2:H;
+  Y = (J-H)/2;
+
+  CONWindow(X,Y,W,H,CLR_TEXT,CLR_BACK,Items);
+
+  /* Skip to the first item */
+  for(P=Items;*P;P++);
+  for(P++,I=0;*P&&(I<H-3);I++,P++)
+  {
+    CONPrintN(X+2,Y+2+I,P,W-3);
+    for(;*P;P++);
+  }
+
+  /* Draw arrow */
+  if((Selected>0)&&(Selected<=Total))
+    CONChar(X+1,Y+2+Selected-1,CON_ARROW);
+}
+
 /** MenuMSX() ************************************************/
 /** Invoke a menu system allowing to configure the emulator **/
 /** and perform several common tasks.                       **/
@@ -52,7 +98,7 @@ extern MCFEntry MCFEntries[MAXCHEATS];
 void MenuMSX(void)
 {
   const char *P;
-  char S[512],*T,*PP;
+  char S[512],MainS[512],*T,*PP;
   int I,J,K,N,V,M,L;
 
   /* Display and activate top menu */
@@ -60,7 +106,7 @@ void MenuMSX(void)
   {
     /* Redraw background */
     if(RefreshLine[ScrMode])
-      for(L=0;L<(ScanLines212? 212:192);++L) RefreshLine[ScrMode](L);
+      for(L=0;L<VideoH;++L) RefreshLine[ScrMode](L < (ScanLines212? 212:192)? L : (ScanLines212? 211:191));
 
     /* Compose menu */
     sprintf(S,
@@ -88,15 +134,20 @@ void MenuMSX(void)
       "Quit emulator\n"
       "  \n"
       "Done\n",
-      MIDILogging(MIDI_QUERY)? CON_CHECK:' ',
-      OPTION(MSX_DRUMS)?       CON_CHECK:' ',
-      (UseEffects&EFF_SHOWFPS)? CON_CHECK:' ',
-      OPTION(MSX_ALLSPRITE)?   CON_CHECK:' ',
-      OPTION(MSX_PATCHBDOS)?   CON_CHECK:' '
+      MIDILogging(MIDI_QUERY)?     CON_CHECK:' ',
+      OPTION(MSX_DRUMS)?           CON_CHECK:' ',
+      (UseEffects&EFF_SHOWFPS)?    CON_CHECK:' ',
+      OPTION(MSX_ALLSPRITE)?       CON_CHECK:' ',
+      OPTION(MSX_PATCHBDOS)?       CON_CHECK:' '
     );
 
+    /* Store main menu for redrawing */
+    memcpy(MainS,S,sizeof(S));
+
     /* Replace all EOLNs with zeroes */
-    for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
+    for(L=0;MainS[L];L++) if(MainS[L]=='\n') MainS[L]='\0';
+    memcpy(S,MainS,sizeof(S));
+
     /* Run menu */
     K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK,S,J);
     /* Exit top menu on ESC */
@@ -108,14 +159,19 @@ void MenuMSX(void)
     {
       case 1: /* Load cartridge, disk image, state, or font */
         /* Request file name */
+        RedrawMain(MainS,J);
         P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0.dsk\0.dsk.gz\0.sta\0.sta.gz\0.cas\0.fnt\0.fnt.gz\0.cht\0.pal\0");
         /* Try loading file, show error on failure */
         if(P&&!LoadSTA(P)&&!LoadFile(P))
+        {
+          RedrawMain(MainS,J);
           CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load file.\0\0");
+        }
         break;
 
       case 2: /* Save state, printer output, or soundtrack */
         /* Run menu */
+        RedrawMain(MainS,J);
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,
           "Save File\0Emulation state\0Printer output\0MIDI soundtrack\0",1
         );
@@ -124,25 +180,34 @@ void MenuMSX(void)
         {
           case 1: /* Save state */
             /* Request file name */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK2,".sta\0");
             /* Try saving state, show error on failure */
             if(P&&!SaveSTA(P))
+            {
+              RedrawMain(MainS,J);
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot save state.\0\0");
+            }
             break;
           case 2: /* Printer output file */
             /* Request file name */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK2,".prn\0.out\0.txt\0");
             /* Try changing printer output */
             if(P) ChangePrinter(P);
             break;
           case 3: /* Soundtrack output file */
             /* Request file name */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK2,".mid\0.rmi\0");
             if(P)
             {
               /* Try changing MIDI log output, show error on failure */
               if(strlen(P)+1>sizeof(SndNameBuf))
+              {
+                RedrawMain(MainS,J);
                 CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Name too long.\0\0");
+              }
               else
               {
                 strcpy(SndNameBuf,P);
@@ -158,6 +223,9 @@ void MenuMSX(void)
       case 4: /* Hardware model */
         for(K=1;K;)
         {
+          /* Redraw background */
+          RedrawMain(MainS,J);
+
           /* Compose menu */
           sprintf(S,
             "Hardware Model\n"
@@ -206,6 +274,9 @@ void MenuMSX(void)
       case 5: /* Input devices */
         for(K=1;K;)
         {
+          /* Redraw background */
+          RedrawMain(MainS,J);
+
           /* Compose menu */
           sprintf(S,
             "Input Devices\n"
@@ -274,6 +345,8 @@ void MenuMSX(void)
         );
         /* Replace all EOLNs with zeroes */
         for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
+        /* Redraw background */
+        RedrawMain(MainS,J);
         /* Get cartridge slot number */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         /* Exit to top menu if cancelled or ESC */
@@ -281,6 +354,9 @@ void MenuMSX(void)
         /* Run slot-specific menu */
         for(K=1;K;)
         {
+          /* Redraw background */
+          RedrawMain(MainS,J);
+
           /* Compose menu */
           sprintf(S,
             "Cartridge Slot %c\n"
@@ -322,10 +398,14 @@ void MenuMSX(void)
           {
             case 1:
               /* Request file name */
+              RedrawMain(MainS,J);
               P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0");
               /* Try loading file, show error on failure */
               if(P&&!LoadCart(P,N,ROMGUESS(N)|ROMTYPE(N)))
+              {
+                RedrawMain(MainS,J);
                 CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load file.\0\0");
+              }
               /* Exit to top menu */
               K=0;
               break;
@@ -355,6 +435,8 @@ void MenuMSX(void)
         );
         /* Replace all EOLNs with zeroes */
         for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
+        /* Redraw background */
+        RedrawMain(MainS,J);
         /* Get disk drive number */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         /* Exit to top menu if cancelled or ESC */
@@ -372,15 +454,21 @@ void MenuMSX(void)
         );
         /* Replace all EOLNs with zeroes */
         for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
+        /* Redraw background */
+        RedrawMain(MainS,J);
         /* Run menu and handle menu selection */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         if(V<0) break;
         switch(V)
         {
           case 1: /* Load disk */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK3,".dsk\0.dsk.gz\0.fdi\0.fdi.gz\0");
             if(P&&!ChangeDisk(N,P))
+            {
+              RedrawMain(MainS,J);
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load disk image.\0\0");
+            }
             break;
           case 2: /* New disk */
             ChangeDisk(N,"");
@@ -389,14 +477,22 @@ void MenuMSX(void)
             ChangeDisk(N,0);
             break;
           case 5: /* Save .DSK image */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK2,".dsk\0");
             if(P&&!SaveFDI(&FDD[N],P,FMT_MSXDSK))
+            {
+              RedrawMain(MainS,J);
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot save disk image.\0\0");
+            }
             break;
           case 6: /* Save .FDI image */
+            RedrawMain(MainS,J);
             P=CONFile(CLR_TEXT,CLR_BACK2,".fdi\0");
             if(P&&!SaveFDI(&FDD[N],P,FMT_FDI))
+            {
+              RedrawMain(MainS,J);
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot save disk image.\0\0");
+            }
             break;
         }
         break;
@@ -411,6 +507,9 @@ void MenuMSX(void)
         /* Menu loop */
         for(I=1;I;)
         {
+          /* Redraw background */
+          RedrawMain(MainS,J);
+
           /* Compose menu */
           sprintf(PP,
             "Cheat Codes\n"
@@ -466,6 +565,9 @@ void MenuMSX(void)
         /* Until user quits the menu... */
         for(I=1;I;)
         {
+          /* Redraw background */
+          RedrawMain(MainS,J);
+
           /* Compose menu */
           sprintf(S,
             "Cheat Hunter\n"
@@ -507,6 +609,9 @@ void MenuMSX(void)
               /* Ask for search options */
               for(I=1,V=K,M=0;I;)
               {
+                /* Redraw background */
+                RedrawMain(MainS,J);
+
                 /* Force 16bit mode for large values */
                 if((K>=0x100)||(V>=0x100)) M|=HUNT_16BIT;
 
@@ -593,6 +698,9 @@ void MenuMSX(void)
               /* Show cheat selection dialog */
               for(I=1,M=0;I;)
               {
+                /* Redraw background */
+                RedrawMain(MainS,J);
+
                 /* Compose dialog */
                 sprintf(S,"Found %d Cheats\n",K);
                 for(L=0;(L<K)&&(strlen(S)<sizeof(S)-64);++L)
