@@ -27,9 +27,11 @@ static const char *Options[]=
   "ram","vram","rom","auto","noauto","msx1","msx2","msx2+","joy",
   "home","simbdos","wd1793","sound","nosound","trap","sync","nosync",
   "scale","static","nostatic","vsync","480","200",
-  "scanlines","noscanlines","4x3",
+  "scanlines","noscanlines","4x3","latency",
   0
 };
+
+int SndLatency = 100;
 
 extern const char *Title;/* Program title                       */
 extern int   UseSound;   /* Sound mode                          */
@@ -265,6 +267,10 @@ int main(int argc,char *argv[])
         case 36: UseEffects|=EFF_TVLINES;break;
         case 37: UseEffects&=~EFF_TVLINES;break;
         case 38: UseEffects|=EFF_4X3;break;
+        case 39: N++;
+                 if(N<argc) SndLatency=atoi(argv[N]);
+                 else printf("%s: No audio latency supplied\n",argv[0]);
+                 break;
 
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
       }

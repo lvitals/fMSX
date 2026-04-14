@@ -25,7 +25,11 @@ unsigned int InitAudio(unsigned int Rate, unsigned int Latency) {
     AudioSpec.format = AUDIO_S8;
 #endif
     AudioSpec.channels = 1;
-    AudioSpec.samples = (Rate * Latency / 1000);
+
+    /* Force buffer size to be a power of 2 for better stability */
+    unsigned int Samples = 1;
+    while(Samples < (Rate * Latency / 1000)) Samples <<= 1;
+    AudioSpec.samples = Samples;
 
     if (SDL_OpenAudio(&AudioSpec, NULL) < 0) {
         return 0;
@@ -45,14 +49,27 @@ void TrashAudio(void) {
 
 unsigned int WriteAudio(sample *Data, unsigned int Length) {
     if (!AudioOpened) return 0;
+    
+    /* If there's more than 500ms of audio queued, clear it to eliminate lag */
+    if (SDL_GetQueuedAudioSize(1) > (AudioSpec.freq * sizeof(sample) / 2)) {
+        SDL_ClearQueuedAudio(1);
+    }
+
     if (SDL_QueueAudio(1, Data, Length * sizeof(sample)) < 0) return 0;
     return Length;
 }
 
 unsigned int GetFreeAudio(void) {
     if (!AudioOpened) return 0;
-    /* Return a large enough value to keep the buffer filled */
-    return AudioSpec.samples * sizeof(sample);
+    
+    unsigned int Queued = SDL_GetQueuedAudioSize(1);
+    unsigned int Max    = AudioSpec.samples * sizeof(sample);
+    
+    /* If the queue is already filled with 2x the buffer size, no more space */
+    if (Queued >= (Max * 2)) return 0;
+    
+    /* Return remaining space in samples (not bytes) */
+    return ((Max * 2) - Queued) / sizeof(sample);
 }
 
 int PauseAudio(int Switch) {

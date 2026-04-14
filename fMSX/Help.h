@@ -59,7 +59,9 @@ static const char *HelpText[] =
   "                        3 - Mouse in real mode",
   "  -simbdos/-wd1793    - Simulate DiskROM disk access calls [-wd1793]",
   "  -sound [<quality>]  - Sound emulation quality (Hz) [44100]",
-  "  -nosound            - Same as '-sound 0'",
+  "  -latency <ms>       - Audio latency in milliseconds [100]", 
+
+  "  -nosound            - Same as '-sound 0'", 
 
 #if defined(DEBUG)
   "  -trap <address>     - Trap execution when PC reaches address [FFFFh]",

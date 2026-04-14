@@ -286,7 +286,7 @@ int InitMachine(void)
   SetKeyHandler(HandleKeys);
 
   /* Initialize sound */
-  InitSound(UseSound,150);
+  InitSound(UseSound,SndLatency);
   SndSwitch=(1<<MAXCHANNELS)-1;
   SndVolume=64;
   SetChannels(SndVolume,SndSwitch);
