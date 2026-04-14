@@ -1084,7 +1084,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       Item=Total-Top>0? Total-Top-1:0;
     }
 
-    if(J==CON_RIGHT)
+    if(FileSelect && (J==CON_RIGHT))
     {
       /* Find current item string */
       const char *S = nth(Items,Top+Item+1);
@@ -1095,7 +1095,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       }
     }
 
-    if(J==CON_LEFT)
+    if(FileSelect && (J==CON_LEFT))
     {
       if(Offset > 0) { Offset--;Draw=1; }
     }
