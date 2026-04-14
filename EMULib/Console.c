@@ -43,6 +43,7 @@ static pixel BG = PIXEL(0,0,0);
 
 #define EOLN(C)      (!(C)||((C)=='\n'))
 #define TAG_SELEFILE 0x5E7EF17E
+#define CON_RELOAD   0x0101
 
 const unsigned char NormalFont[] =
 {
@@ -393,6 +394,8 @@ static const unsigned char *CurFont = NormalFont;
 static const unsigned char *CurShadow = 0;
 static char Result[2048];
 static char LastDir[2048] = "";
+static int ShowHidden = 0;
+static const char *CON_RELOAD_PTR = "\01RELOAD";
 
 static const char *nth(const char *S,int N)
 {
@@ -890,6 +893,14 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     /* Wait for mouse click or key press */
     J=WaitKeyOrMouse();
+
+    /* Toggle hidden files on Ctrl+H */
+    if(FileSelect && ((J == (CON_CONTROL|'h')) || (J == (CON_CONTROL|'H'))))
+    {
+      ShowHidden = !ShowHidden;
+      J = CON_RELOAD;
+    }
+
     I=GetKey();
 
     /* If key pressed, use it, rather than mouse */
@@ -1065,11 +1076,11 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       if(Offset > 0) { Offset--;Draw=1; }
     }
   }
-  while((J!=CON_OK)&&(J!=CON_EXIT));
+  while((J!=CON_OK)&&(J!=CON_EXIT)&&(J!=CON_RELOAD));
 
   /* Return selection */
   return(FileSelect?
-    (J==CON_OK? nth(Items,Top+Item+1):0)
+    (J==CON_RELOAD? CON_RELOAD_PTR : (J==CON_OK? nth(Items,Top+Item+1):0))
   : (J==CON_OK? Result+Top+Item+1:Result)
   );
 }
@@ -1127,10 +1138,11 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     /* Compute required buffer size and entry count */
     for(rewinddir(D),I=256,Count=0;(DP=readdir(D));)
       if(strcmp(DP->d_name,"."))
-      {
-        I += strlen(DP->d_name)+2;
-        Count++;
-      }
+        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,".."))
+        {
+          I += strlen(DP->d_name)+2;
+          Count++;
+        }
 
     /* Reallocate buffer if needed */
     if((I>BufSize)&&(T=malloc(I)))
@@ -1154,35 +1166,36 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     /* Collect entries */
     for(rewinddir(D),Count=0;(DP=readdir(D));)
       if(strcmp(DP->d_name,"."))
-      {
-        I=strlen(DP->d_name)+1;
-        /* Construct full path for stat() */
-        char FullPath[2048];
-        snprintf(FullPath,sizeof(FullPath),"%s/%s",LastDir,DP->d_name);
-        if(!stat(FullPath,&ST)&&S_ISDIR(ST.st_mode))
+        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,".."))
         {
-          if((T=malloc(I+1)))
+          I=strlen(DP->d_name)+1;
+          /* Construct full path for stat() */
+          char FullPath[2048];
+          snprintf(FullPath,sizeof(FullPath),"%s/%s",LastDir,DP->d_name);
+          if(!stat(FullPath,&ST)&&S_ISDIR(ST.st_mode))
           {
-            T[0]=CON_FOLDER;
-            strcpy(T+1,DP->d_name);
-            Entries[Count++]=T;
+            if((T=malloc(I+1)))
+            {
+              T[0]=CON_FOLDER;
+              strcpy(T+1,DP->d_name);
+              Entries[Count++]=T;
+            }
+          }
+          else
+          {
+            for(P=Ext;*P;P+=strlen(P)+1)
+              if((I>strlen(P))&&!stricmp(DP->d_name+I-1-strlen(P),P))
+              {
+                if((T=malloc(I+1)))
+                {
+                  T[0]=CON_FILE;
+                  strcpy(T+1,DP->d_name);
+                  Entries[Count++]=T;
+                }
+                break;
+              }
           }
         }
-        else
-        {
-          for(P=Ext;*P;P+=strlen(P)+1)
-            if((I>strlen(P))&&!stricmp(DP->d_name+I-1-strlen(P),P))
-            {
-              if((T=malloc(I+1)))
-              {
-                T[0]=CON_FILE;
-                strcpy(T+1,DP->d_name);
-                Entries[Count++]=T;
-              }
-              break;
-            }
-        }
-      }
 
     /* Done with directory */
     closedir(D);
@@ -1217,6 +1230,8 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     if(P)
       switch(*P)
       {
+        case '\01': /* CON_RELOAD_PTR marker */
+          break;
         case CON_FOLDER:
           if(!strcmp(P+1,".."))
           {
