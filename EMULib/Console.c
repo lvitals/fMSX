@@ -1284,6 +1284,10 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext,int SaveMode)
             Result[0] = '\0';
             if(CONInput(-1,-1,FGColor,BGColor,"Enter Filename:",Result,sizeof(Result)-1))
             {
+              /* If no extension provided, append the first one from Ext */
+              if(Ext && *Ext && !strchr(Result,'.'))
+                strncat(Result,Ext,sizeof(Result)-strlen(Result)-1);
+
               /* If filename entered, prepend current directory and return */
               char NewPath[2048];
               int Len = strlen(LastDir);

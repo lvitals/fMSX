@@ -57,7 +57,7 @@ extern "C" {
 #define CPU_H256     (HREFRESH_256/6)
 
 /* Maximum state data size */   
-#define MAX_STASIZE  (0x8000+(RAMPages*0x4000)+(VRAMPages*0x4000))
+#define MAX_STASIZE  (0x9000+(RAMPages*0x4000)+(VRAMPages*0x4000))
 
 #define INT_IE0      0x01   /* VDP interrupt modes           */
 #define INT_IE1      0x02
@@ -261,8 +261,8 @@ extern byte PSLReg;                   /* Primary slot reg.   */
 extern byte SSLReg[4];                /* Secondary slot reg. */
 
 extern const char *ProgDir;           /* Program directory   */
-extern const char *ROMName[MAXCARTS]; /* Cart A/B ROM files  */
-extern const char *DSKName[MAXDRIVES];/* Disk A/B images     */
+extern char *ROMName[MAXCARTS];       /* Cart A/B ROM files  */
+extern char *DSKName[MAXDRIVES];      /* Disk A/B images     */
 extern const char *SndName;           /* Soundtrack log file */
 extern int   SndLatency;         /* Audio latency (ms)  */
 extern const char *PrnName;           /* Printer redir. file */

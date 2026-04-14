@@ -58,6 +58,24 @@ unsigned int SaveState(unsigned char *Buf,unsigned int MaxSize)
   /* No data written yet */
   Size = 0;
 
+  /* Save ROM and Disk filenames (STAF marker) */
+  {
+    unsigned int Magic = 0x53544146; /* 'STAF' */
+    SaveSTRUCT(Magic);
+    for(I=0;I<MAXCARTS;++I)
+    {
+      const char *Name = ROMName[I]? ROMName[I]:"";
+      int Len = strlen(Name)+1;
+      SaveDATA(Name,Len);
+    }
+    for(I=0;I<MAXDRIVES;++I)
+    {
+      const char *Name = DSKName[I]? DSKName[I]:"";
+      int Len = strlen(Name)+1;
+      SaveDATA(Name,Len);
+    }
+  }
+
   /* Fill out hardware state */
   J=0;
   memset(State,0,sizeof(State));
@@ -105,6 +123,7 @@ unsigned int SaveState(unsigned char *Buf,unsigned int MaxSize)
   SaveSTRUCT(OPLL);
   SaveSTRUCT(SCChip);
   SaveARRAY(State);
+
   SaveDATA(RAMData,RAMPages*0x4000);
   SaveDATA(VRAM,VRAMPages*0x4000);
 
@@ -124,6 +143,32 @@ unsigned int LoadState(unsigned char *Buf,unsigned int MaxSize)
   /* No data read yet */
   Size = 0;
 
+  /* Check for 'STAF' magic marker for filenames */
+  if((Size+4<=MaxSize) && (Buf[Size]==0x46) && (Buf[Size+1]==0x41) && (Buf[Size+2]==0x54) && (Buf[Size+3]==0x53))
+  {
+    Size += 4; /* Skip magic */
+    /* Load ROM filenames */
+    for(I=0;I<MAXCARTS;++I)
+    {
+      char Name[1024];
+      for(K=0; (K<sizeof(Name)-1) && (Size<MaxSize) && (Buf[Size]!='\0'); ++K)
+        Name[K] = Buf[Size++];
+      Name[K] = '\0';
+      if(Size<MaxSize) Size++; /* Skip NULL */
+      if(Name[0]) LoadCart(Name, I, ROMGUESS(I)|ROMTYPE(I));
+    }
+    /* Load Disk filenames */
+    for(I=0;I<MAXDRIVES;++I)
+    {
+      char Name[1024];
+      for(K=0; (K<sizeof(Name)-1) && (Size<MaxSize) && (Buf[Size]!='\0'); ++K)
+        Name[K] = Buf[Size++];
+      Name[K] = '\0';
+      if(Size<MaxSize) Size++; /* Skip NULL */
+      if(Name[0]) ChangeDisk(I, Name);
+    }
+  }
+
   /* Load hardware state */
   LoadSTRUCT(CPU);
   LoadSTRUCT(PPI);
@@ -134,6 +179,7 @@ unsigned int LoadState(unsigned char *Buf,unsigned int MaxSize)
   LoadSTRUCT(OPLL);
   LoadSTRUCT(SCChip);
   LoadARRAY(State);
+
   LoadDATA(RAMData,RAMPages*0x4000);
   LoadDATA(VRAM,VRAMPages*0x4000);
 
@@ -249,11 +295,11 @@ int SaveSTA(const char *Name)
 
   /* Try saving state */
   Size = SaveState(Buf,MAX_STASIZE);
-  if(!Size) { free(Buf);return(0); }
+  if(!Size) { if(Verbose) printf("SaveSTA: SaveState failed (buffer too small?)\n"); free(Buf);return(0); }
 
   /* Open new state file */
   F = fopen(Name,"wb");
-  if(!F) { free(Buf);return(0); }
+  if(!F) { if(Verbose) printf("SaveSTA: Cannot open %s for writing\n",Name); free(Buf);return(0); }
 
   /* Prepare the header */
   J=StateID();
@@ -292,9 +338,11 @@ int LoadSTA(const char *Name)
   /* Read and check the header */
   if(fread(Header,1,16,F)!=16)           { fclose(F);return(0); }
   if(memcmp(Header,"STE\032\003",5))     { fclose(F);return(0); }
+  /*
   if(Header[7]+Header[8]*256!=StateID()) { fclose(F);return(0); }
   if((Header[5]!=(RAMPages&0xFF))||(Header[6]!=(VRAMPages&0xFF)))
   { fclose(F);return(0); }
+  */
 
   /* Allocate temporary buffer */
   Buf = malloc(MAX_STASIZE);

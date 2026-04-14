@@ -120,7 +120,7 @@ int main(int argc,char *argv[])
       if(!strcmp(argv[N],"--help")) J=4;
       else
       {
-        if(CartCount<MAXCARTS) { ROMName[CartCount++]=argv[N];continue; }
+        if(CartCount<MAXCARTS) { ROMName[CartCount++]=strdup(argv[N]);continue; }
         else { printf("%s: Excessive filename '%s'\n",argv[0],argv[N]);continue; }
       }
     }
@@ -300,8 +300,8 @@ int main(int argc,char *argv[])
   }
 
   /* Terminate disk lists and set initial disk names */
-  if(DiskCount[0]) { Disks[0][DiskCount[0]]=0;DSKName[0]=Disks[0][0]; }
-  if(DiskCount[1]) { Disks[1][DiskCount[1]]=0;DSKName[1]=Disks[1][0]; }
+  if(DiskCount[0]) { Disks[0][DiskCount[0]]=0;DSKName[0]=strdup(Disks[0][0]); }
+  if(DiskCount[1]) { Disks[1][DiskCount[1]]=0;DSKName[1]=strdup(Disks[1][0]); }
 
   /* Start fMSX! */
   if(!InitMachine()) return(1);

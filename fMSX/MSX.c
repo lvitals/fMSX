@@ -102,7 +102,7 @@ const char *ProgDir = 0;           /* Program directory      */
 const char *WorkDir;               /* Working directory      */
 
 /** Cartridge files used by fMSX *****************************/
-const char *ROMName[MAXCARTS] = { "CARTA.ROM","CARTB.ROM" };
+char *ROMName[MAXCARTS] = { 0,0 };
 
 /** On-cartridge SRAM data ***********************************/
 char *SRAMName[MAXSLOTS] = {0,0,0,0,0,0};/* Filenames (gen-d)*/
@@ -110,13 +110,15 @@ byte SaveSRAM[MAXSLOTS] = {0,0,0,0,0,0}; /* Save SRAM on exit*/
 byte *SRAMData[MAXSLOTS];          /* SRAM (battery backed)  */
 
 /** Disk images used by fMSX *********************************/
-const char *DSKName[MAXDRIVES] = { "DRIVEA.DSK","DRIVEB.DSK" };
+char *DSKName[MAXDRIVES] = { 0,0 };
 
 /** Soundtrack logging ***************************************/
 const char *SndName = "LOG.MID";   /* Sound log file         */
 
 /** Emulation state saving ***********************************/
 const char *STAName = "DEFAULT.STA";/* State file (autogen-d)*/
+static byte LoadingState = 0;       /* Flag to prevent recursion */
+
 
 /** Fixed font used by fMSX **********************************/
 #ifdef SDL2
@@ -2487,8 +2489,12 @@ byte ChangeDisk(byte N,const char *FileName)
   /* We only have MAXDRIVES drives */
   if(N>=MAXDRIVES) return(0);
 
+  /* Update DSKName */
+  if(DSKName[N]) free(DSKName[N]);
+  DSKName[N] = FileName && *FileName? strdup(FileName):0;
+
   /* Load state when inserting first disk into drive A: */
-  NeedState = FileName && *FileName && !N && !FDD[N].Data;
+  NeedState = !LoadingState && FileName && *FileName && !N && !FDD[N].Data;
 
   /* Reset FDC, in case it was running a command */
   Reset1793(&FDC,FDD,WD1793_KEEP);
@@ -3116,6 +3122,14 @@ int LoadCart(const char *FileName,int Slot,int Type)
 
   /* Slot number must be valid */
   if((Slot<0)||(Slot>=MAXSLOTS)) return(0);
+
+  /* Update ROMName */
+  if(Slot<MAXCARTS)
+  {
+    if(ROMName[Slot]) free(ROMName[Slot]);
+    ROMName[Slot] = FileName && *FileName? strdup(FileName):0;
+  }
+
   /* Find primary/secondary slots */
   for(PS=0;PS<4;++PS)
   {
@@ -3416,15 +3430,15 @@ int LoadCart(const char *FileName,int Slot,int Type)
   }
 
   /* Done setting up cartridge */
-  ResetMSX(Mode,RAMPages,VRAMPages);
+  if(!LoadingState) ResetMSX(Mode,RAMPages,VRAMPages);
   PRINTOK;
 
   /* If first used user slot, try loading state */
-  if(!Slot||((Slot==1)&&!ROMData[0])) FindState(FileName);
+  if(!LoadingState && (!Slot||((Slot==1)&&!ROMData[0]))) FindState(FileName);
 
   /* Done loading cartridge */
   return(Pages);
-}
+  }
 
 /** LoadCHT() ************************************************/
 /** Load cheats from .CHT file. Cheat format is either      **/
@@ -3515,7 +3529,21 @@ int SaveMCF(const char *Name)
 /** SaveState(), LoadState(), SaveSTA(), and LoadSTA()      **/
 /** functions are implemented here.                         **/
 /*************************************************************/
+#define LoadState LoadState_Internal
 #include "State.h"
+#undef LoadState
+
+unsigned int LoadState(unsigned char *Buf,unsigned int MaxSize)
+{
+  unsigned int Result;
+  byte OldVerbose = Verbose;
+  LoadingState = 1;
+  Verbose = 0; /* Silencioso durante o carregamento de mídias */
+  Result = LoadState_Internal(Buf,MaxSize);
+  Verbose = OldVerbose;
+  LoadingState = 0;
+  return(Result);
+}
 
 #if defined(ZLIB) || defined(ANDROID)
 #undef fopen
