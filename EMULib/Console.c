@@ -773,8 +773,10 @@ char *CONInput(int X,int Y,pixel FGColor,pixel BGColor,const char *Title,char *I
 
 static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGColor,const char *Items,int Item)
 {
+  char Filter[64] = "";
+  int FilterLen = 0;
   const char *P;
-  int I,J,Draw,Total,Top;
+  int I,J,K,Draw,Total,Top;
   int FileSelect;
 
   /* File selector is a special mode */
@@ -812,8 +814,17 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
   {
     if(Draw)
     {
-      /* Draw window */
-      CONWindow(X,Y,W,H,FGColor,BGColor,Items);
+      /* Draw window with current filter if searching */
+      if(FilterLen>0)
+      {
+        char Title[128];
+        snprintf(Title,sizeof(Title),"Search: %s_",Filter);
+        CONWindow(X,Y,W,H,FGColor,BGColor,Title);
+      }
+      else
+      {
+        CONWindow(X,Y,W,H,FGColor,BGColor,Items);
+      }
 
       /* Draw arrows */
       if(Top) CONChar(X+1,Y+1,CON_LESS);
@@ -879,49 +890,61 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
     if(!J||!VideoImg) return(FileSelect? 0:Result);
 
     /* SPACE, ENTER, TAB treated as "OK" */
-    if((J==' ')||(J==0x0A)||(J==0x0D)||(J==0x09)) J=CON_OK;
+    if(((J==' ')&&!FileSelect)||(J==0x0A)||(J==0x0D)) J=CON_OK;
 
-    /* ESCAPE, BS treated as "EXIT" */
-    if((J==0x1B)||(J==0x08)) J=CON_EXIT;
+    /* ESCAPE treated as "EXIT" */
+    if(J==0x1B) J=CON_EXIT;
+    /* BS treated as "EXIT" if not filtering or filter already empty */
+    if((J==0x08)&&(!FileSelect||(FilterLen<=0))) J=CON_EXIT;
 
     /* Erase arrow */
     CONChar(X+1,Y+2+Item,' ');
 
-    /* When selecting a filename and a letter has been typed... */
-    if(FileSelect&&(J>0x20)&&(J<0x80))
+    /* Handle Backspace to shorten filter */
+    if(FileSelect&&(J==0x08)&&(FilterLen>0))
     {
-      /* Draw input box */
-      CONWindow(X,Y+H-4,W,4,FGColor,BGColor,"Enter Filename:");
+      Filter[--FilterLen]='\0';
+      J=0x01; /* Use non-printable as dummy to trigger re-scan logic below */
+    }
 
-      /* Input text */
-      for(I=0;(I>=0)&&(J!=CON_OK)&&(J!=CON_EXIT);)
+    /* Handle character typing to update filter and jump to item */
+    if(FileSelect&&(((J>=0x20)&&(J<0x80))||(J==0x01)))
+    {
+      /* If real character (not dummy from BS), add to filter */
+      if((J!=0x01)&&(FilterLen<sizeof(Filter)-1))
       {
-        if((J>=0x20)&&(J<0x80)&&(I<W-3)&&(I<sizeof(Result)-1))
-        {
-          CONChar(X+I+1,Y+H-2,J);
-          Result[I++]=J;
-        }
-        /* Show cursor */
-        CONChar(X+I+1,Y+H-2,'_');
-        /* Show screen */
-        ShowVideo();
-        /* Get key, drop out if console closed */
-        J=WaitKey();
-        if(!J||!VideoImg) return(FileSelect? 0:Result);
-        /* Erase characters on BS */
-        if(J==0x08)
-        {
-          I--;
-          CONChar(X+I+1,Y+H-2,'_');
-          CONChar(X+I+2,Y+H-2,' ');
-        }
+        Filter[FilterLen++]=toupper(J);
+        Filter[FilterLen]='\0';
       }
 
-      /* Terminate and return text */
-      if(J==CON_OK) { Result[I]='\0';return(Result); }
-
-      /* Redraw menu */
-      Draw=1;
+      if(FilterLen>0)
+      {
+        /* Find first item matching the filter */
+        const char *S;
+        int Count;
+        /* Skip title */
+        for(S=Items;*S;S++);
+        for(S++,Count=0;*S;Count++,S++)
+        {
+          /* Check if current item starts with Filter (skipping type char) */
+          for(K=0;S[K+1]&&(K<FilterLen)&&(toupper(S[K+1])==Filter[K]);++K);
+          if(K==FilterLen)
+          {
+            /* Found it! Jump to this item */
+            Top  = Count-(Count%(H-3));
+            Item = Count%(H-3);
+            break;
+          }
+          /* Skip to next string */
+          for(;*S;S++);
+        }
+      }
+      Draw=1; J=0; /* Key consumed */
+    }
+    else if(J&&(J!=CON_OK))
+    {
+      /* Reset filter on other keys (navigation, etc) */
+      FilterLen=Filter[0]='\0';
     }
 
     if(J==CON_UP)
