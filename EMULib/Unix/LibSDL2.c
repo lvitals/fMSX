@@ -76,22 +76,24 @@ static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
 static SDL_Texture *Texture   = NULL;
 
-static int TimerReady = 0;
+static Uint64 NextFrameTime = 0;
+static Uint64 FrameDuration = 0;
 static unsigned int JoyState = 0;
 static unsigned int LastKey = 0;
 
 static int Effects = EFF_SCALE | EFF_SAVECPU;
+
+static char FPSString[32] = "";
+static Uint32 LastFPSTime = 0;
+static int FrameCount = 0;
+
+extern int SyncFreq;
 
 int ARGC = 0;
 char **ARGV = NULL;
 
 static void SigHandler(int Signum) {
   ExitNow = 1;
-}
-
-static Uint32 TimerCallback(Uint32 interval, void *param) {
-    TimerReady = 1;
-    return interval;
 }
 
 static unsigned int SDLToKeysym(SDL_Keycode Key) {
@@ -183,8 +185,8 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDLWindow = SDL_CreateWindow(Title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!SDLWindow) return 0;
 
-    Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_PRESENTVSYNC);
+    Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_ACCELERATED);
+    if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, 0);
     if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_SOFTWARE);
     if (!Renderer) return 0;
 
@@ -300,6 +302,20 @@ int ShowVideo(void) {
 
     if (!Texture) return 0;
 
+    /* If showing FPS, calculate and print it */
+    if (Effects & EFF_SHOWFPS) {
+        Uint32 Now = SDL_GetTicks();
+        FrameCount++;
+        if (Now - LastFPSTime >= 1000) {
+            sprintf(FPSString, "%d/%d FPS", (int)(FrameCount * 1000.0 / (Now - LastFPSTime)), SyncFreq);
+            LastFPSTime = Now;
+            FrameCount = 0;
+        }
+        if (FPSString[0]) {
+            ShadowPrintXY(VideoImg, FPSString, VideoX + VideoW - strlen(FPSString) * 8 - 8, VideoY + VideoH - 16, PIXEL(255, 255, 255), PIXEL(0, 0, 0));
+        }
+    }
+
     SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
     
     SDL_Rect SrcRect = { VideoX, VideoY, VideoW, VideoH };
@@ -344,21 +360,42 @@ int ShowVideo(void) {
 
     SDL_RenderPresent(Renderer);
 
+    /* Wait for sync timer if requested */
+    if (Effects & EFF_SYNC) WaitSyncTimer();
+
     return 1;
 }
 
 int SetSyncTimer(int Hz) {
-    if (Hz <= 0) return 0;
-    SDL_AddTimer(1000 / Hz, TimerCallback, NULL);
+    if (Hz <= 0) {
+        FrameDuration = 0;
+        return 0;
+    }
+    FrameDuration = SDL_GetPerformanceFrequency() / Hz;
+    NextFrameTime = SDL_GetPerformanceCounter() + FrameDuration;
     return 1;
 }
 
 int WaitSyncTimer(void) {
-    while (!TimerReady && !ExitNow) {
-        SDL_Delay(1);
-        ProcessEvents(0);
+    if (FrameDuration == 0) return 1;
+
+    Uint64 Now = SDL_GetPerformanceCounter();
+    if (Now < NextFrameTime) {
+        /* coarse wait */
+        Uint32 DelayMs = (Uint32)((NextFrameTime - Now) * 1000 / SDL_GetPerformanceFrequency());
+        if (DelayMs > 1) SDL_Delay(DelayMs - 1);
+        /* fine busy-wait */
+        while (SDL_GetPerformanceCounter() < NextFrameTime);
     }
-    TimerReady = 0;
+
+    /* Advance to next expected frame time */
+    NextFrameTime += FrameDuration;
+
+    /* If we are way behind (more than 5 frames), reset to current time */
+    if (NextFrameTime + (FrameDuration * 5) < SDL_GetPerformanceCounter()) {
+        NextFrameTime = SDL_GetPerformanceCounter() + FrameDuration;
+    }
+
     return !ExitNow;
 }
 

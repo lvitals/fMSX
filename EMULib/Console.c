@@ -15,6 +15,7 @@
 #else
 
 #include "Console.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -390,7 +391,8 @@ const unsigned char BoldFont[] =
 static unsigned char ShadowFont[8*128];
 static const unsigned char *CurFont = NormalFont;
 static const unsigned char *CurShadow = 0;
-static char Result[256];
+static char Result[2048];
+static char LastDir[2048] = "";
 
 static const char *nth(const char *S,int N)
 {
@@ -974,6 +976,10 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
 
   if(!VideoImg) return(0);
 
+  /* Initialize LastDir if empty */
+  if(!LastDir[0])
+    if(!getcwd(LastDir,sizeof(LastDir)-1)) strcpy(LastDir,".");
+
   /* No buffer yet */
   Buf      = 0;
   BufSize  = 0;
@@ -984,10 +990,13 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
   {
 #ifdef ANDROID
     /* Open current directory, fall back to home directory if failed */
-    if(!(D=opendir(".")))
+    if(!(D=opendir(LastDir)))
     {
       CONMsg(-1,-1,-1,-1,FGColor,BGColor,"Warning","Current folder unavailable.\0Changing to the app folder.\0");
-      if(GetHomeDir() && !chdir(GetHomeDir())) D=opendir(".");
+      if(GetHomeDir() && !chdir(GetHomeDir()))
+      {
+        if(getcwd(LastDir,sizeof(LastDir)-1)) D=opendir(LastDir);
+      }
     }
     /* Drop out if everything fails */
     if(!D)
@@ -997,7 +1006,7 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     }
 #else
     /* Open current directory */
-    if(!(D=opendir("."))) break;
+    if(!(D=opendir(LastDir))) break;
 #endif
 
     /* Compute required buffer size and entry count */
@@ -1032,7 +1041,10 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
       if(strcmp(DP->d_name,"."))
       {
         I=strlen(DP->d_name)+1;
-        if(!stat(DP->d_name,&ST)&&S_ISDIR(ST.st_mode))
+        /* Construct full path for stat() */
+        char FullPath[2048];
+        snprintf(FullPath,sizeof(FullPath),"%s/%s",LastDir,DP->d_name);
+        if(!stat(FullPath,&ST)&&S_ISDIR(ST.st_mode))
         {
           if((T=malloc(I+1)))
           {
@@ -1063,8 +1075,9 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     /* Sort entries */
     if(Count>1) qsort(Entries,Count,sizeof(char *),CompareEntries);
 
-    /* Create title from the current pathname */
-    if(!getcwd(Buf,BufSize-2)) strcpy(Buf,"Choose File");
+    /* Use LastDir as title */
+    strncpy(Buf,LastDir,BufSize-2);
+    Buf[BufSize-2]='\0';
     J=strlen(Buf)+1;
 
     /* Copy sorted entries to Buf */
@@ -1090,20 +1103,49 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
       switch(*P)
       {
         case CON_FOLDER:
-          /* Check that the folder is accessible */
-          if(!(D=opendir(P+1))) { /* Something went wrong */ }
+          if(!strcmp(P+1,".."))
+          {
+            /* Go up: strip last component of LastDir */
+            char *S = strrchr(LastDir,'/');
+#ifdef WINDOWS
+            if(!S) S = strrchr(LastDir,'\\');
+#endif
+            if(S)
+            {
+              if(S==LastDir) S[1]='\0'; /* Keep leading slash */
+              else S[0]='\0';
+            }
+          }
           else
           {
-            /* Folder accessible, close it for now */
-            closedir(D);
-            /* Change to selected folder */
-            if(chdir(P+1)) { /* Something went wrong */ }
+            /* Go down: append to LastDir */
+            char NewDir[2048];
+            int Len = strlen(LastDir);
+            strncpy(NewDir,LastDir,sizeof(NewDir)-1);
+            NewDir[sizeof(NewDir)-1] = '\0';
+            if(Len && (LastDir[Len-1]!='/' && LastDir[Len-1]!='\\'))
+              strncat(NewDir,"/",sizeof(NewDir)-strlen(NewDir)-1);
+            strncat(NewDir,P+1,sizeof(NewDir)-strlen(NewDir)-1);
+
+            /* Check that the folder is accessible */
+            if((D=opendir(NewDir)))
+            {
+              closedir(D);
+              strncpy(LastDir,NewDir,sizeof(LastDir)-1);
+              LastDir[sizeof(LastDir)-1]='\0';
+            }
           }
           break;
         case CON_FILE:
-          /* File selected, return it */
-          strncpy(Result,P+1,sizeof(Result));
-          Result[sizeof(Result)-1]='\0';
+          /* File selected, return full path in Result[] */
+          {
+            int Len = strlen(LastDir);
+            strncpy(Result,LastDir,sizeof(Result)-1);
+            Result[sizeof(Result)-1] = '\0';
+            if(Len && (LastDir[Len-1]!='/' && LastDir[Len-1]!='\\'))
+              strncat(Result,"/",sizeof(Result)-strlen(Result)-1);
+            strncat(Result,P+1,sizeof(Result)-strlen(Result)-1);
+          }
           if(Buf) free(Buf);
           if(Entries) free(Entries);
           return(Result);

@@ -514,6 +514,11 @@ void RefreshLine8(byte Y);
 void RefreshLine10(byte Y);
 void RefreshLine12(byte Y);
 
+/** UpdateTimings() ******************************************/
+/** Update CPU and synchronization timings.                 **/
+/*************************************************************/
+void UpdateTimings(void);
+
 #ifdef __cplusplus
 }
 #endif

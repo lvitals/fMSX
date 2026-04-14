@@ -466,6 +466,14 @@ unsigned int Mouse(byte N)
   return(((J&MSE_BUTTONS)>>14)|X|(Y<<8));
 }
 
+/** ResetSyncTimer() *****************************************/
+/** Reset synchronization timer with current SyncFreq/UPeriod.**/
+/*************************************************************/
+void ResetSyncTimer(void)
+{
+  if((SyncFreq>0)&&!SetSyncTimer(SyncFreq*UPeriod/100)) SyncFreq=0;
+}
+
 /** SetColor() ***********************************************/
 /** Set color N to (R,G,B).                                 **/
 /*************************************************************/

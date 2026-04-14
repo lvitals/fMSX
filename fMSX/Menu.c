@@ -34,6 +34,10 @@ static char SndNameBuf[256];
 
 extern byte *MemMap[4][4][8];         /* [PPage][SPage][Adr] */
 extern byte *EmptyRAM;                /* Dummy memory area   */
+extern int UseEffects;                /* Video effects       */
+extern int SyncFreq;                  /* Sync frequency      */
+extern byte VDP[64];                  /* VDP registers       */
+extern void ResetSyncTimer(void);     /* Reset sync timer    */
 
 /** Cheat Structures *****************************************/
 extern int CheatCount;       /* # of cheats in CheatCodes[]  */
@@ -70,7 +74,7 @@ void MenuMSX(void)
       "Log soundtrack    %c\n"
       "Hit MIDI drums    %c\n"
       "  \n"
-      "Use fixed font    %c\n"
+      "Show real-time FPS %c\n"
       "Show all sprites  %c\n"
       "Patch DiskROM     %c\n"
       "  \n"
@@ -82,7 +86,7 @@ void MenuMSX(void)
       "Done\n",
       MIDILogging(MIDI_QUERY)? CON_CHECK:' ',
       OPTION(MSX_DRUMS)?       CON_CHECK:' ',
-      OPTION(MSX_FIXEDFONT)?   CON_CHECK:' ',
+      (UseEffects&EFF_SHOWFPS)? CON_CHECK:' ',
       OPTION(MSX_ALLSPRITE)?   CON_CHECK:' ',
       OPTION(MSX_PATCHBDOS)?   CON_CHECK:' '
     );
@@ -184,8 +188,8 @@ void MenuMSX(void)
             case 1:  if(!MODEL(MSX_MSX1))  ResetMSX((Mode&~MSX_MODEL)|MSX_MSX1,RAMPages,VRAMPages);break;
             case 2:  if(!MODEL(MSX_MSX2))  ResetMSX((Mode&~MSX_MODEL)|MSX_MSX2,RAMPages,VRAMPages);break;
             case 3:  if(!MODEL(MSX_MSX2P)) ResetMSX((Mode&~MSX_MODEL)|MSX_MSX2P,RAMPages,VRAMPages);break;
-            case 5:  if(!VIDEO(MSX_NTSC))  ResetMSX((Mode&~MSX_VIDEO)|MSX_NTSC,RAMPages,VRAMPages);break;
-            case 6:  if(!VIDEO(MSX_PAL))   ResetMSX((Mode&~MSX_VIDEO)|MSX_PAL,RAMPages,VRAMPages);break;
+            case 5:  Mode=(Mode&~MSX_VIDEO)|MSX_NTSC; VDP[9]&=~0x02; UpdateTimings(); break;
+            case 6:  Mode=(Mode&~MSX_VIDEO)|MSX_PAL;  VDP[9]|=0x02;  UpdateTimings(); break;
             case 8:  ResetMSX(Mode,RAMPages<32? RAMPages*2:4,VRAMPages);break;
             case 9:  ResetMSX(Mode,RAMPages,VRAMPages<32? VRAMPages*2:2);break;
             case 11: K=0;break;
@@ -634,8 +638,9 @@ void MenuMSX(void)
       case 12: /* Hit MIDI drums for noise */
         Mode^=MSX_DRUMS;
         break;
-      case 14: /* Use fixed font */
-        Mode^=MSX_FIXEDFONT;
+      case 14: /* Show real-time FPS */
+        UseEffects^=EFF_SHOWFPS;
+        SetEffects(UseEffects);
         break;
       case 15: /* Show all sprites */
         Mode^=MSX_ALLSPRITE;

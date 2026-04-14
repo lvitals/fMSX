@@ -57,10 +57,13 @@
 #define chdir(path) ChangeDir(path)
 #endif
 
+extern int  SyncFreq;
+extern void ResetSyncTimer(void);
+
 /** User-defined parameters for fMSX *************************/
 int  Mode        = MSX_MSX2|MSX_NTSC|MSX_MSXDOS2|MSX_GUESSA|MSX_GUESSB;
 byte Verbose     = 1;              /* Debug msgs ON/OFF      */
-byte UPeriod     = 75;             /* % of frames to draw    */
+byte UPeriod     = 100;            /* % of frames to draw    */
 int  VPeriod     = CPU_VPERIOD;    /* CPU cycles per VBlank  */
 int  HPeriod     = CPU_HPERIOD;    /* CPU cycles per HBlank  */
 int  RAMPages    = 4;              /* Number of RAM pages    */
@@ -618,6 +621,7 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
 
   /* Start execution of the code */
   if(Verbose) printf("RUNNING ROM CODE...\n");
+  UpdateTimings();
   A=RunZ80(&CPU);
 
   /* Exiting emulation... */
@@ -678,6 +682,24 @@ void TrashMSX(void)
 
   /* Free all remaining allocated memory */
   FreeAllMemory();
+}
+
+/** UpdateTimings() ******************************************/
+/** Update CPU and synchronization timings.                 **/
+/*************************************************************/
+void UpdateTimings(void)
+{
+  int NewSyncFreq;
+
+  if(VIDEO(MSX_PAL)) VDP[9]|=0x02; else VDP[9]&=~0x02;
+  VPeriod     = (VIDEO(MSX_PAL)? VPERIOD_PAL:VPERIOD_NTSC)/6;
+  NewSyncFreq = VIDEO(MSX_PAL)? 50:60;
+
+  if(SyncFreq != NewSyncFreq)
+  {
+    SyncFreq = NewSyncFreq;
+    ResetSyncTimer();
+  }
 }
 
 /** ResetMSX() ***********************************************/
@@ -867,7 +889,6 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   ROMType[1]     = ROMTYPE(1);
 
   /* Set CPU timings */
-  VPeriod        = (VIDEO(MSX_PAL)? VPERIOD_PAL:VPERIOD_NTSC)/6;
   HPeriod        = HPERIOD/6;
   CPU.IPeriod    = CPU_H240;
   CPU.IAutoReset = 0;
@@ -970,6 +991,10 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   /* Reset VDP */
   memcpy(VDP,VDPInit,sizeof(VDP));
   memcpy(VDPStatus,VDPSInit,sizeof(VDPStatus));
+
+  /* Set PALVideo according to NewMode and update timings */
+  if(VIDEO(MSX_PAL)) VDP[9] |= 0x02; else VDP[9] &= ~0x02;
+  UpdateTimings();
 
   /* Reset keyboard */
   memset((void *)KeyState,0xFF,16);
@@ -1938,6 +1963,15 @@ void VDPOut(register byte R,register byte V)
              break;
     case  6: V&=0x3F;SprGen=VRAM+((int)V<<11);break;
     case  7: FGColor=V>>4;BGColor=V&0x0F;break;
+    case  9: /* Set video system (NTSC/PAL) */
+             /* Force bit 1 to match the current Mode preference */
+             V = (V & ~0x02) | (VIDEO(MSX_PAL) ? 0x02 : 0x00);
+             if(VDP[9] != V)
+             {
+               VDP[9] = V;
+               UpdateTimings();
+             }
+             break;
     case 10: V&=0x07;
              ColTab=VRAM+((int)(VDP[3]&MSK[ScrMode].R3)<<6)+((int)V<<14);
              break;
