@@ -13,7 +13,7 @@ CXX     = g++
 RM      = rm -f
 
 # Set USE_SDL2=1 to use SDL2 instead of X11
-USE_SDL2 ?= 0
+USE_SDL2 ?= 1
 
 # Directories
 EMULIB  = EMULib
@@ -27,7 +27,7 @@ CFLAGS  = -O2 -std=c99 -pthread -Wall
 CFLAGS += -I$(EMULIB) -I$(LIBZ80) -I$(FMSX) -I$(EMUUNIX) -I$(UNIX)
 
 # Base Definitions
-DEFINES = -D_DEFAULT_SOURCE -DFMSX -DUNIX -DBPS16 -DZLIB -DCONDEBUG -DDEBUG
+DEFINES = -D_GNU_SOURCE -D_DEFAULT_SOURCE -DFMSX -DUNIX -DBPS16 -DZLIB -DCONDEBUG -DDEBUG
 
 # Endianness Detection (Default to LSB for ARM/x86)
 ifeq ($(filter $(UNAME_M), x86_64 i386 i686 arm% aarch64), $(UNAME_M))

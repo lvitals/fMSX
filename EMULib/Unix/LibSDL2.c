@@ -18,9 +18,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h>
 
 extern int MasterSwitch;
 extern int MasterVolume;
+extern int ExitNow;
 
 static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
@@ -31,10 +33,13 @@ static unsigned int JoyState = 0;
 static unsigned int LastKey = 0;
 
 static int Effects = EFF_SCALE | EFF_SAVECPU;
-static int XSize, YSize;
 
 int ARGC = 0;
 char **ARGV = NULL;
+
+static void SigHandler(int Signum) {
+  ExitNow = 1;
+}
 
 static Uint32 TimerCallback(Uint32 interval, void *param) {
     TimerReady = 1;
@@ -42,9 +47,6 @@ static Uint32 TimerCallback(Uint32 interval, void *param) {
 }
 
 int InitUnix(const char *Title, int Width, int Height) {
-    XSize = Width;
-    YSize = Height;
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         return 0;
     }
@@ -59,6 +61,9 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
     SDL_RenderClear(Renderer);
     SDL_RenderPresent(Renderer);
+
+    signal(SIGINT, SigHandler);
+    signal(SIGTERM, SigHandler);
 
     return 1;
 }
@@ -78,13 +83,12 @@ int ProcessEvents(int Wait) {
     while (SDL_PollEvent(&Event)) {
         switch (Event.type) {
             case SDL_QUIT:
+                ExitNow = 1;
                 return 0;
             case SDL_KEYDOWN:
             case SDL_KEYUP:
                 {
                     unsigned int Key = Event.key.keysym.sym;
-                    /* Map SDL keys to fMSX/EMULib expected keys if necessary */
-                    /* For now, just pass the sym. */
                     if (Event.type == SDL_KEYUP) Key |= CON_RELEASE;
                     LastKey = Key;
                     if (KeyHandler) KeyHandler(Key);
@@ -92,7 +96,7 @@ int ProcessEvents(int Wait) {
                 break;
         }
     }
-    return 1;
+    return !ExitNow;
 }
 
 void SetEffects(unsigned int NewEffects) {
@@ -107,20 +111,26 @@ unsigned int ParseEffects(char *Args[], unsigned int Effects) {
 int ShowVideo(void) {
     if (!VideoImg || !VideoImg->Data || !Renderer) return 0;
 
-    if (!Texture || VideoImg->W != XSize || VideoImg->H != YSize) {
+    int TW = 0, TH = 0;
+    if (Texture) SDL_QueryTexture(Texture, NULL, NULL, &TW, &TH);
+
+    if (!Texture || VideoImg->W != TW || VideoImg->H != TH) {
         if (Texture) SDL_DestroyTexture(Texture);
-        Texture = SDL_CreateTexture(Renderer, 
-#if defined(BPP32)
-            SDL_PIXELFORMAT_ARGB8888,
-#elif defined(BPP16)
-            SDL_PIXELFORMAT_RGB565,
-#else
-            SDL_PIXELFORMAT_RGB332,
-#endif
-            SDL_TEXTUREACCESS_STREAMING, VideoImg->W, VideoImg->H);
+        
+        Uint32 Format;
+        switch (VideoImg->D) {
+            case 32: Format = SDL_PIXELFORMAT_ARGB8888; break;
+            case 16: Format = SDL_PIXELFORMAT_RGB565; break;
+            case 8:  Format = SDL_PIXELFORMAT_RGB332; break;
+            default: Format = SDL_PIXELFORMAT_UNKNOWN; break;
+        }
+
+        Texture = SDL_CreateTexture(Renderer, Format, SDL_TEXTUREACCESS_STREAMING, VideoImg->W, VideoImg->H);
     }
 
-    SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->W * (VideoImg->D >> 3));
+    if (!Texture) return 0;
+
+    SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
     SDL_RenderClear(Renderer);
     SDL_RenderCopy(Renderer, Texture, NULL, NULL);
     SDL_RenderPresent(Renderer);
@@ -135,12 +145,12 @@ int SetSyncTimer(int Hz) {
 }
 
 int WaitSyncTimer(void) {
-    while (!TimerReady) {
+    while (!TimerReady && !ExitNow) {
         SDL_Delay(1);
         ProcessEvents(0);
     }
     TimerReady = 0;
-    return 1;
+    return !ExitNow;
 }
 
 unsigned int GetJoystick(void) {
@@ -154,7 +164,7 @@ unsigned int GetKey(void) {
 }
 
 unsigned int WaitKey(void) {
-    while (!LastKey) ProcessEvents(1);
+    while (!LastKey && !ExitNow) ProcessEvents(1);
     return GetKey();
 }
 
@@ -171,16 +181,19 @@ unsigned int GetMouse(void) {
 
 unsigned int WaitKeyOrMouse(void) {
     unsigned int J;
-    while (!(J = GetMouse() & MSE_BUTTONS) && !LastKey) ProcessEvents(1);
+    while (!(J = GetMouse() & MSE_BUTTONS) && !LastKey && !ExitNow) ProcessEvents(1);
     return J? GetMouse():GetKey();
 }
 
 unsigned int X11GetColor(unsigned char R, unsigned char G, unsigned char B) {
-#if defined(BPP32)
-    return (R << 16) | (G << 8) | B;
+    /* Use the same formulas as EMULib/Unix/LibUnix.h for consistency */
+#if defined(BPP32) || !defined(PIXEL)
+    return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
 #elif defined(BPP16)
-    return (((R >> 3) << 11) | ((G >> 2) << 5) | (B >> 3));
+    return (unsigned int)(((31*(R)/255)<<11)|((63*(G)/255)<<5)|(31*(B)/255));
+#elif defined(BPP8)
+    return (unsigned int)(((7*(R)/255)<<5)|((7*(G)/255)<<2)|(3*(B)/255));
 #else
-    return ((R & 0xE0) | ((G >> 3) & 0x1C) | (B >> 6));
+    return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
 #endif
 }
