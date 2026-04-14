@@ -72,6 +72,19 @@ int main(int argc,char *argv[])
   Verbose=0;
   /* Figure out program directory name */
   ProgDir=GetFilePath(argv[0]);
+#elif defined(UNIX)
+  Verbose=1;
+  {
+    static char ExecDir[1024];
+    int Len = readlink("/proc/self/exe", ExecDir, sizeof(ExecDir)-1);
+    if (Len > 0)
+    {
+      ExecDir[Len] = '\0';
+      char *P = strrchr(ExecDir, '/');
+      if (P) *P = '\0';
+      ProgDir = ExecDir;
+    }
+  }
 #else
   Verbose=1;
 #endif

@@ -959,14 +959,13 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   for(J=0;J<MAXSLOTS;++J)
     if((I=ROMMask[J]+1)>4)
     {
-      /* For normal MegaROMs, set first four pages */
-      if((ROMData[J][0]=='A')&&(ROMData[J][1]=='B'))
-        SetMegaROM(J,0,1,2,3);
+      /* Default to first four pages */
+      SetMegaROM(J,0,1,2,3);
+
       /* Some MegaROMs default to last pages on reset */
-      else if((ROMData[J][(I-2)<<13]=='A')&&(ROMData[J][((I-2)<<13)+1]=='B'))
-        SetMegaROM(J,I-2,I-1,I-2,I-1);
-      /* If 'AB' signature is not found at the beginning or the end */
-      /* then it is not a MegaROM but rather a plain 64kB ROM       */
+      if((ROMData[J][0]!='A')||(ROMData[J][1]!='B'))
+        if((ROMData[J][(I-2)<<13]=='A')&&(ROMData[J][((I-2)<<13)+1]=='B'))
+          SetMegaROM(J,I-2,I-1,I-2,I-1);
     }
 
   /* Reset sound chips */
@@ -2851,7 +2850,11 @@ int GuessROM(const byte *Buf,int Size)
   { if(Verbose) printf("Failed changing to '%s' directory!\n",ProgDir); }
 
   /* Try opening file with CRCs */
-  if((F=fopen("CARTS.CRC","rb")))
+  if(!(F=fopen("CARTS.CRC","rb")))
+    if(!(F=fopen("BIOS/CARTS.CRC","rb")))
+      F=fopen("CARTS.CRC","rb");
+
+  if(F)
   {
     /* Compute ROM's CRC */
     for(J=K=0;J<Size;++J) K+=Buf[J];
@@ -2866,23 +2869,30 @@ int GuessROM(const byte *Buf,int Size)
   }
 
   /* Try opening file with SHA1 sums */
-  if((Result<0) && (F=fopen("CARTS.SHA","rb")))
+  if(Result<0)
   {
-    char S1[41],S2[41];
-    SHA1 C;
+    if(!(F=fopen("CARTS.SHA","rb")))
+      if(!(F=fopen("BIOS/CARTS.SHA","rb")))
+        F=fopen("CARTS.SHA","rb");
 
-    /* Compute ROM's SHA1 */
-    ResetSHA1(&C);
-    InputSHA1(&C,Buf,Size);
-    if(ComputeSHA1(&C) && OutputSHA1(&C,S1,sizeof(S1)))
+    if(F)
     {
-      while(fgets(S,sizeof(S)-4,F))
-        if((sscanf(S,"%40s %d",S2,&J)==2) && !strcmp(S1,S2))
-        { Result=J;break; }
-    }
+      char S1[41],S2[41];
+      SHA1 C;
 
-    /* Done with the file */
-    fclose(F);
+      /* Compute ROM's SHA1 */
+      ResetSHA1(&C);
+      InputSHA1(&C,Buf,Size);
+      if(ComputeSHA1(&C) && OutputSHA1(&C,S1,sizeof(S1)))
+      {
+        while(fgets(S,sizeof(S)-4,F))
+          if((sscanf(S,"%40s %d",S2,&J)==2) && !strcmp(S1,S2))
+          { Result=J;break; }
+      }
+
+      /* Done with the file */
+      fclose(F);
+    }
   }
 
   /* We are now back to working directory */
@@ -2971,7 +2981,13 @@ byte *LoadROM(const char *Name,int Size,byte *Buf)
   if(Buf&&!Size) return(0);
 
   /* Open file */
-  if(!(F=fopen(Name,"rb"))) return(0);
+  if(!(F=fopen(Name,"rb")))
+  {
+    if(Name[0] == '/') return(0);
+    char Path[1024];
+    snprintf(Path,sizeof(Path),"BIOS/%s",Name);
+    if(!(F=fopen(Path,"rb"))) return(0);
+  }
 
   /* Determine data size, if wasn't given */
   if(!Size)
