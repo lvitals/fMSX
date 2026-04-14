@@ -118,6 +118,10 @@ byte DebugZ80(Z80 *R)
       CONPrint(X+25,Y+21,S);
       DrawWindow=0;
       A=~Addr;
+
+      /* Show instructions at the bottom */
+      CONSetColor(CLR_TEXT,CLR_BACK);
+      CONPrint(X+1,Y+22,"C/Q:Continue ENTER:Step H:Help");
     }
 
     /* If top address has changed... */
@@ -204,7 +208,7 @@ byte DebugZ80(Z80 *R)
           "    J - Jump to cursor\0"
           "    R - Run to cursor\0"
           "    C - Continue execution\0"
-          "    Q - Quit emulator\0"
+          "    Q - Continue execution\0"
         );
         DrawWindow=1;
         break;
@@ -240,10 +244,13 @@ byte DebugZ80(Z80 *R)
         ExitNow=1;
         break;
       case '\0':
-      case 'Q':
         return(0);
       case CON_EXIT:
+      case 'g':
+      case 'c':
       case 'C':
+      case 'q':
+      case 'Q':
         R->Trap=0xFFFF;
         R->Trace=0;
         ExitNow=1;

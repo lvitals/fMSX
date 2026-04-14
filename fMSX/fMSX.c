@@ -31,7 +31,7 @@ static const char *Options[]=
   0
 };
 
-int SndLatency = 100;
+int SndLatency = 50;
 
 extern const char *Title;/* Program title                       */
 extern int   UseSound;   /* Sound mode                          */

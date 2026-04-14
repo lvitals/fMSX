@@ -59,7 +59,7 @@ static const char *HelpText[] =
   "                        3 - Mouse in real mode",
   "  -simbdos/-wd1793    - Simulate DiskROM disk access calls [-wd1793]",
   "  -sound [<quality>]  - Sound emulation quality (Hz) [44100]",
-  "  -latency <ms>       - Audio latency in milliseconds [100]", 
+  "  -latency <ms>       - Audio latency in milliseconds [50]", 
 
   "  -nosound            - Same as '-sound 0'", 
 
