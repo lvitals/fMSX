@@ -19,6 +19,15 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <ctype.h>
+
+static struct termios oldt;
+static int term_initialized = 0;
+static unsigned int LastStdinKey = 0;
+static int StdinShiftPressed = 0;
 
 #ifndef SDL2
 #include "LibUnix.h"
@@ -104,11 +113,62 @@ void PutImage(void);
 /*************************************************************/
 #include "CommonMux.h"
 
+/** StdinUpdate() ********************************************/
+/** Read characters from stdin and update keyboard matrix.  **/
+/*************************************************************/
+static void StdinUpdate(void)
+{
+  unsigned char C;
+  int MSXKey = 0;
+  int NeedShift = 0;
+
+  /* Release previous key if any */
+  if(LastStdinKey)
+  {
+    HandleKeys(LastStdinKey | CON_RELEASE);
+    LastStdinKey = 0;
+  }
+  if(StdinShiftPressed)
+  {
+    HandleKeys(KBD_SHIFT | CON_RELEASE);
+    StdinShiftPressed = 0;
+  }
+
+  /* Read a character from stdin */
+  if(read(STDIN_FILENO, &C, 1) == 1)
+  {
+    /* Map ASCII to MSX keys */
+    if(C == '\n' || C == '\r') MSXKey = KBD_ENTER;
+    else if(C == 8 || C == 127) MSXKey = KBD_BS;
+    else if(C == '\t') MSXKey = KBD_TAB;
+    else if(C == 27) MSXKey = KBD_ESCAPE;
+    else if(C >= ' ' && C <= '~')
+    {
+      MSXKey = toupper(C);
+      /* Check if we need SHIFT */
+      if(isupper(C) || strchr("!@#$%^&*()_+{}|:\"<>?", C))
+        NeedShift = 1;
+    }
+
+    if(MSXKey)
+    {
+      if(NeedShift)
+      {
+        HandleKeys(KBD_SHIFT);
+        StdinShiftPressed = 1;
+      }
+      HandleKeys(MSXKey);
+      LastStdinKey = MSXKey;
+    }
+  }
+}
+
 /** InitMachine() ********************************************/
 /** Allocate resources needed by machine-dependent code.    **/
 /*************************************************************/
 int InitMachine(void)
 {
+  struct termios newt;
   int J;
 
   /* Initialize variables */
@@ -167,6 +227,20 @@ int InitMachine(void)
   RPLInit(SaveState,LoadState,MAX_STASIZE);
   RPLRecord(RPL_RESET);
 
+  /* Set terminal to non-canonical mode if stdin is a terminal */
+  if(isatty(STDIN_FILENO))
+  {
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO | ISIG);
+    newt.c_cc[VMIN] = 0;
+    newt.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    term_initialized = 1;
+    /* Make stdin non-blocking just in case */
+    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
+  }
+
   /* Done */
   return(1);
 }
@@ -176,6 +250,13 @@ int InitMachine(void)
 /*************************************************************/
 void TrashMachine(void)
 {
+  /* Restore terminal settings */
+  if(term_initialized)
+  {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    term_initialized = 0;
+  }
+
   /* Flush and free recording buffers */
   RPLTrash();
 
@@ -289,7 +370,8 @@ unsigned int Joystick(void)
 /*************************************************************/
 void Keyboard(void)
 {
-  /* Everything is done in Joystick() */
+  /* Process input from stdin (for SSH) */
+  StdinUpdate();
 }
 
 /** Mouse() **************************************************/
