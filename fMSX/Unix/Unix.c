@@ -118,8 +118,9 @@ void PutImage(void);
 /*************************************************************/
 static void StdinUpdate(void)
 {
-  unsigned char C;
-  int MSXKey = 0;
+  unsigned char C[16];
+  int n;
+  unsigned int MSXKey = 0;
   int NeedShift = 0;
 
   /* Release previous key if any */
@@ -134,27 +135,84 @@ static void StdinUpdate(void)
     StdinShiftPressed = 0;
   }
 
-  /* Read a character from stdin */
-  if(read(STDIN_FILENO, &C, 1) == 1)
+  /* Read input from stdin */
+  n = read(STDIN_FILENO, C, sizeof(C));
+  if(n > 0)
   {
-    /* Map ASCII to MSX keys */
-    if(C == '\n' || C == '\r') MSXKey = KBD_ENTER;
-    else if(C == 8 || C == 127) MSXKey = KBD_BS;
-    else if(C == '\t') MSXKey = KBD_TAB;
-    else if(C == 27) MSXKey = KBD_ESCAPE;
-    else if(C >= ' ' && C <= '~')
+    if(C[0] == 27) /* Escape sequence */
     {
-      MSXKey = toupper(C);
-      /* Check if we need SHIFT */
-      if(isupper(C) || strchr("!@#$%^&*()_+{}|:\"<>?", C))
-        NeedShift = 1;
+      if(n == 1) MSXKey = XK_Escape;
+      else if(n >= 3 && C[1] == '[')
+      {
+        switch(C[2])
+        {
+          case 'A': MSXKey = XK_Up; break;
+          case 'B': MSXKey = XK_Down; break;
+          case 'C': MSXKey = XK_Right; break;
+          case 'D': MSXKey = XK_Left; break;
+          default:
+            if(n >= 4 && C[3] == '~')
+            {
+              int Code = 0;
+              sscanf((char *)&C[2], "%d", &Code);
+              switch(Code)
+              {
+                case 11: MSXKey = XK_F1; break;
+                case 12: MSXKey = XK_F2; break;
+                case 13: MSXKey = XK_F3; break;
+                case 14: MSXKey = XK_F4; break;
+                case 15: MSXKey = XK_F5; break;
+                case 17: MSXKey = XK_F6; break;
+                case 18: MSXKey = XK_F7; break;
+                case 19: MSXKey = XK_F8; break;
+                case 20: MSXKey = XK_F9; break;
+                case 21: MSXKey = XK_F10; break;
+                case 23: MSXKey = XK_F11; break;
+                case 24: MSXKey = XK_F12; break;
+                case 2:  MSXKey = XK_Insert; break;
+                case 3:  MSXKey = XK_Delete; break;
+                case 5:  MSXKey = XK_Page_Up; break;
+                case 6:  MSXKey = XK_Page_Down; break;
+              }
+            }
+            break;
+        }
+      }
+      else if(n >= 3 && C[1] == 'O')
+      {
+        switch(C[2])
+        {
+          case 'P': MSXKey = XK_F1; break;
+          case 'Q': MSXKey = XK_F2; break;
+          case 'R': MSXKey = XK_F3; break;
+          case 'S': MSXKey = XK_F4; break;
+          case 'H': MSXKey = XK_Home; break;
+          case 'F': MSXKey = XK_End; break;
+        }
+      }
+    }
+    else
+    {
+      /* Map ASCII to MSX keys */
+      unsigned char val = C[0];
+      if(val == '\n' || val == '\r') MSXKey = XK_Return;
+      else if(val == 8 || val == 127) MSXKey = XK_BackSpace;
+      else if(val == '\t') MSXKey = XK_Tab;
+      else if(val == 3) { /* Ctrl+C is now just ASCII 3, ignoring it */ }
+      else if(val >= ' ' && val <= '~')
+      {
+        MSXKey = toupper(val);
+        /* Check if we need SHIFT */
+        if(isupper(val) || strchr("!@#$%^&*()_+{}|:\"<>?", val))
+          NeedShift = 1;
+      }
     }
 
     if(MSXKey)
     {
       if(NeedShift)
       {
-        HandleKeys(KBD_SHIFT);
+        HandleKeys(XK_Shift_L);
         StdinShiftPressed = 1;
       }
       HandleKeys(MSXKey);
