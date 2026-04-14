@@ -27,7 +27,7 @@ static const char *Options[]=
   "ram","vram","rom","auto","noauto","msx1","msx2","msx2+","joy",
   "home","simbdos","wd1793","sound","nosound","trap","sync","nosync",
   "scale","static","nostatic","vsync","480","200",
-  "scanlines","noscanlines",
+  "scanlines","noscanlines","4x3",
   0
 };
 
@@ -264,6 +264,7 @@ int main(int argc,char *argv[])
 
         case 36: UseEffects|=EFF_TVLINES;break;
         case 37: UseEffects&=~EFF_TVLINES;break;
+        case 38: UseEffects|=EFF_4X3;break;
 
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
       }

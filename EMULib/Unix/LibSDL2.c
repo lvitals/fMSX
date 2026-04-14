@@ -140,6 +140,34 @@ static unsigned int SDLToKeysym(SDL_Keycode Key) {
         case SDLK_KP_8:      return XK_KP_8;
         case SDLK_KP_9:      return XK_KP_9;
         case SDLK_KP_ENTER:  return XK_KP_Enter;
+        
+        /* Map common symbols explicitly */
+        case SDLK_QUOTE:     return '\'';
+        case SDLK_QUOTEDBL:  return '"';
+        case SDLK_BACKQUOTE: return '`';
+        case SDLK_HASH:      return '#';
+        case SDLK_PERCENT:   return '%';
+        case SDLK_AMPERSAND: return '&';
+        case SDLK_LEFTPAREN: return '(';
+        case SDLK_RIGHTPAREN: return ')';
+        case SDLK_ASTERISK:  return '*';
+        case SDLK_PLUS:      return '+';
+        case SDLK_COMMA:     return ',';
+        case SDLK_MINUS:     return '-';
+        case SDLK_PERIOD:    return '.';
+        case SDLK_SLASH:     return '/';
+        case SDLK_COLON:     return ':';
+        case SDLK_SEMICOLON: return ';';
+        case SDLK_LESS:      return '<';
+        case SDLK_EQUALS:    return '=';
+        case SDLK_GREATER:   return '>';
+        case SDLK_QUESTION:  return '?';
+        case SDLK_AT:        return '@';
+        case SDLK_LEFTBRACKET: return '[';
+        case SDLK_BACKSLASH: return '\\';
+        case SDLK_RIGHTBRACKET: return ']';
+        case SDLK_CARET:     return '^';
+        case SDLK_UNDERSCORE: return '_';
     }
     if (Key < 128) return (unsigned int)Key;
     return 0;
@@ -187,7 +215,7 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 unsigned int Key = SDLToKeysym(Event->key.keysym.sym);
                 if (Key) {
                     if (Event->type == SDL_KEYUP) Key |= CON_RELEASE;
-
+                    
                     SDL_Keymod Mod = SDL_GetModState();
                     if (Mod & KMOD_SHIFT) Key |= CON_SHIFT;
                     if (Mod & KMOD_CTRL)  Key |= CON_CONTROL;
@@ -243,6 +271,7 @@ unsigned int ParseEffects(char *Args[], unsigned int Effects) {
     else if (!strcmp(Args[J], "-noscanlines")) Effects &= ~EFF_TVLINES;
     else if (!strcmp(Args[J], "-sync")) Effects |= EFF_SYNC;
     else if (!strcmp(Args[J], "-nosync")) Effects &= ~EFF_SYNC;
+    else if (!strcmp(Args[J], "-4x3")) Effects |= EFF_4X3;
   }
   return Effects;
 }
@@ -272,20 +301,42 @@ int ShowVideo(void) {
     SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
     
     SDL_Rect SrcRect = { VideoX, VideoY, VideoW, VideoH };
+    SDL_Rect DstRect = { 0, 0, 0, 0 };
+    int WW, WH;
+
+    SDL_GetRendererOutputSize(Renderer, &WW, &WH);
+    
+    if (Effects & EFF_4X3) {
+        float Aspect = 4.0f / 3.0f;
+        if ((float)WW / WH > Aspect) {
+            DstRect.h = WH;
+            DstRect.w = (int)(WH * Aspect);
+            DstRect.x = (WW - DstRect.w) / 2;
+            DstRect.y = 0;
+        } else {
+            DstRect.w = WW;
+            DstRect.h = (int)(WW / Aspect);
+            DstRect.x = 0;
+            DstRect.y = (WH - DstRect.h) / 2;
+        }
+    } else {
+        DstRect.w = WW;
+        DstRect.h = WH;
+        DstRect.x = 0;
+        DstRect.y = 0;
+    }
     
     SDL_RenderSetViewport(Renderer, NULL);
     SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
     SDL_RenderClear(Renderer);
-    SDL_RenderCopy(Renderer, Texture, &SrcRect, NULL);
+    SDL_RenderCopy(Renderer, Texture, &SrcRect, &DstRect);
 
     /* Draw scanlines over the rendered image if enabled */
     if (Effects & EFF_TVLINES) {
-        int WW, WH;
-        SDL_GetRendererOutputSize(Renderer, &WW, &WH);
         SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 48); /* ~20% transparency */
-        for (int y = 0; y < WH; y += 2) {
-            SDL_RenderDrawLine(Renderer, 0, y, WW, y);
+        for (int y = DstRect.y; y < DstRect.y + DstRect.h; y += 2) {
+            SDL_RenderDrawLine(Renderer, DstRect.x, y, DstRect.x + DstRect.w, y);
         }
     }
 
