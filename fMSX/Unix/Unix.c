@@ -122,8 +122,16 @@ static void StdinUpdate(void)
   int n;
   unsigned int MSXKey = 0;
   int NeedShift = 0;
+  static int KeyTimer = 0;
 
-  /* Release previous key if any */
+  /* Keep key pressed for at least 2 frames to ensure MSX detects it */
+  if(KeyTimer > 0)
+  {
+    KeyTimer--;
+    return;
+  }
+
+  /* Release previous key */
   if(LastStdinKey)
   {
     HandleKeys(LastStdinKey | CON_RELEASE);
@@ -136,9 +144,10 @@ static void StdinUpdate(void)
   }
 
   /* Read input from stdin */
-  n = read(STDIN_FILENO, C, sizeof(C));
+  n = read(STDIN_FILENO, C, sizeof(C) - 1);
   if(n > 0)
   {
+    C[n] = 0; /* Null-terminate for sscanf */
     if(C[0] == 27) /* Escape sequence */
     {
       if(n == 1) MSXKey = XK_Escape;
@@ -151,28 +160,30 @@ static void StdinUpdate(void)
           case 'C': MSXKey = XK_Right; break;
           case 'D': MSXKey = XK_Left; break;
           default:
-            if(n >= 4 && C[3] == '~')
+            if(C[n-1] == '~')
             {
               int Code = 0;
-              sscanf((char *)&C[2], "%d", &Code);
-              switch(Code)
+              if(sscanf((char *)&C[2], "%d", &Code) == 1)
               {
-                case 11: MSXKey = XK_F1; break;
-                case 12: MSXKey = XK_F2; break;
-                case 13: MSXKey = XK_F3; break;
-                case 14: MSXKey = XK_F4; break;
-                case 15: MSXKey = XK_F5; break;
-                case 17: MSXKey = XK_F6; break;
-                case 18: MSXKey = XK_F7; break;
-                case 19: MSXKey = XK_F8; break;
-                case 20: MSXKey = XK_F9; break;
-                case 21: MSXKey = XK_F10; break;
-                case 23: MSXKey = XK_F11; break;
-                case 24: MSXKey = XK_F12; break;
-                case 2:  MSXKey = XK_Insert; break;
-                case 3:  MSXKey = XK_Delete; break;
-                case 5:  MSXKey = XK_Page_Up; break;
-                case 6:  MSXKey = XK_Page_Down; break;
+                switch(Code)
+                {
+                  case 11: MSXKey = XK_F1; break;
+                  case 12: MSXKey = XK_F2; break;
+                  case 13: MSXKey = XK_F3; break;
+                  case 14: MSXKey = XK_F4; break;
+                  case 15: MSXKey = XK_F5; break;
+                  case 17: MSXKey = XK_F6; break;
+                  case 18: MSXKey = XK_F7; break;
+                  case 19: MSXKey = XK_F8; break;
+                  case 20: MSXKey = XK_F9; break;
+                  case 21: MSXKey = XK_F10; break;
+                  case 23: MSXKey = XK_F11; break;
+                  case 24: MSXKey = XK_F12; break;
+                  case 2:  MSXKey = XK_Insert; break;
+                  case 3:  MSXKey = XK_Delete; break;
+                  case 5:  MSXKey = XK_Page_Up; break;
+                  case 6:  MSXKey = XK_Page_Down; break;
+                }
               }
             }
             break;
@@ -190,6 +201,8 @@ static void StdinUpdate(void)
           case 'F': MSXKey = XK_End; break;
         }
       }
+      /* Fallback: ESC followed by '=' acts as F12 */
+      else if(n == 2 && C[1] == '=') MSXKey = XK_F12;
     }
     else
     {
@@ -198,11 +211,10 @@ static void StdinUpdate(void)
       if(val == '\n' || val == '\r') MSXKey = XK_Return;
       else if(val == 8 || val == 127) MSXKey = XK_BackSpace;
       else if(val == '\t') MSXKey = XK_Tab;
-      else if(val == 3) { /* Ctrl+C is now just ASCII 3, ignoring it */ }
+      else if(val == 3) { /* Ctrl+C handled as nothing */ }
       else if(val >= ' ' && val <= '~')
       {
         MSXKey = toupper(val);
-        /* Check if we need SHIFT */
         if(isupper(val) || strchr("!@#$%^&*()_+{}|:\"<>?", val))
           NeedShift = 1;
       }
@@ -217,6 +229,7 @@ static void StdinUpdate(void)
       }
       HandleKeys(MSXKey);
       LastStdinKey = MSXKey;
+      KeyTimer = 2; /* Keep pressed for 2 frames */
     }
   }
 }
