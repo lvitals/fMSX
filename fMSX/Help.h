@@ -25,7 +25,7 @@ static const char *HelpText[] =
   "                         0 - Silent       1 - Startup messages",
   "                         2 - V9938 ops    4 - Disk/Tape",
   "                         8 - Memory      16 - Illegal Z80 ops",
-  "                        32 - I/O",
+  "                        32 - I/O         64 - Keyboard Input",
   "  -skip <percent>     - Percentage of frames to skip [25]",
   "  -pal/-ntsc          - Set PAL/NTSC HBlank/VBlank periods [NTSC]",
   "  -help               - Print this help page",
@@ -70,7 +70,8 @@ static const char *HelpText[] =
 #if defined(MSDOS) || defined(UNIX) || defined(MAEMO)
   "  -sync <frequency>   - Sync screen updates to <frequency> [60]",
   "  -nosync             - Do not sync screen updates",
-  "  -tv/-lcd/-raster    - Simulate TV scanlines or LCD raster [off]",
+  "  -scanlines          - Simulate TV scanlines [off]",
+  "  -noscanlines        - Turn off TV scanlines [on]",
   "  -linear             - Scale display with linear interpolation [off]",
   "  -soft/-eagle        - Scale display with 2xSaI or EAGLE [off]",
   "  -epx/-scale2x       - Scale display with EPX or Scale2X [off]",

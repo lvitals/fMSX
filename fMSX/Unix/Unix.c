@@ -20,6 +20,50 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifndef SDL2
+#include "LibUnix.h"
+#else
+#include <ctype.h>
+#define XK_BackSpace 0xff08
+#define XK_Tab       0xff09
+#define XK_Return    0xff0d
+#define XK_Escape    0xff1b
+#define XK_Delete    0xffff
+#define XK_Home      0xff50
+#define XK_Left      0xff51
+#define XK_Up        0xff52
+#define XK_Right     0xff53
+#define XK_Down      0xff54
+#define XK_Page_Up   0xff55
+#define XK_Page_Down 0xff56
+#define XK_End       0xff57
+#define XK_Insert    0xff63
+#define XK_F1        0xffbe
+#define XK_F2        0xffbf
+#define XK_F3        0xffc0
+#define XK_F4        0xffc1
+#define XK_F5        0xffc2
+#define XK_F6        0xffc3
+#define XK_F7        0xffc4
+#define XK_F8        0xffc5
+#define XK_F9        0xffc6
+#define XK_F10       0xffc7
+#define XK_F11       0xffc8
+#define XK_F12       0xffc9
+#define XK_Shift_L   0xffe1
+#define XK_Shift_R   0xffe2
+#define XK_Control_L 0xffe3
+#define XK_Control_R 0xffe4
+#define XK_Caps_Lock 0xffe5
+#define XK_Alt_L     0xffe9
+#define XK_Alt_R     0xffea
+#define XK_Control_L 0xffe3
+#define XK_Control_R 0xffe4
+#define XK_Caps_Lock 0xffe5
+#define XK_Alt_L     0xffe9
+#define XK_Alt_R     0xffea
+#endif
+
 #define WIDTH       272                   /* Buffer width    */
 #define HEIGHT      228                   /* Buffer height   */
 

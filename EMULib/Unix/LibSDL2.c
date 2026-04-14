@@ -20,9 +20,57 @@
 #include <ctype.h>
 #include <signal.h>
 
+/* Define X11 keysyms locally to avoid X11 dependency */
+#define XK_BackSpace 0xff08
+#define XK_Tab       0xff09
+#define XK_Return    0xff0d
+#define XK_Escape    0xff1b
+#define XK_Delete    0xffff
+#define XK_Home      0xff50
+#define XK_Left      0xff51
+#define XK_Up        0xff52
+#define XK_Right     0xff53
+#define XK_Down      0xff54
+#define XK_Page_Up   0xff55
+#define XK_Page_Down 0xff56
+#define XK_End       0xff57
+#define XK_Insert    0xff63
+#define XK_F1        0xffbe
+#define XK_F2        0xffbf
+#define XK_F3        0xffc0
+#define XK_F4        0xffc1
+#define XK_F5        0xffc2
+#define XK_F6        0xffc3
+#define XK_F7        0xffc4
+#define XK_F8        0xffc5
+#define XK_F9        0xffc6
+#define XK_F10       0xffc7
+#define XK_F11       0xffc8
+#define XK_F12       0xffc9
+#define XK_Shift_L   0xffe1
+#define XK_Shift_R   0xffe2
+#define XK_Control_L 0xffe3
+#define XK_Control_R 0xffe4
+#define XK_Caps_Lock 0xffe5
+#define XK_Alt_L     0xffe9
+#define XK_Alt_R     0xffea
+
+#define XK_KP_0      0xffb0
+#define XK_KP_1      0xffb1
+#define XK_KP_2      0xffb2
+#define XK_KP_3      0xffb3
+#define XK_KP_4      0xffb4
+#define XK_KP_5      0xffb5
+#define XK_KP_6      0xffb6
+#define XK_KP_7      0xffb7
+#define XK_KP_8      0xffb8
+#define XK_KP_9      0xffb9
+#define XK_KP_Enter  0xff8d
+
 extern int MasterSwitch;
 extern int MasterVolume;
 extern int ExitNow;
+extern unsigned char Verbose;
 
 static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
@@ -46,12 +94,65 @@ static Uint32 TimerCallback(Uint32 interval, void *param) {
     return interval;
 }
 
+static unsigned int SDLToKeysym(SDL_Keycode Key) {
+    switch (Key) {
+        case SDLK_BACKSPACE: return XK_BackSpace;
+        case SDLK_TAB:       return XK_Tab;
+        case SDLK_RETURN:    return XK_Return;
+        case SDLK_ESCAPE:    return XK_Escape;
+        case SDLK_DELETE:    return XK_Delete;
+        case SDLK_UP:        return XK_Up;
+        case SDLK_DOWN:      return XK_Down;
+        case SDLK_LEFT:      return XK_Left;
+        case SDLK_RIGHT:     return XK_Right;
+        case SDLK_F1:        return XK_F1;
+        case SDLK_F2:        return XK_F2;
+        case SDLK_F3:        return XK_F3;
+        case SDLK_F4:        return XK_F4;
+        case SDLK_F5:        return XK_F5;
+        case SDLK_F6:        return XK_F6;
+        case SDLK_F7:        return XK_F7;
+        case SDLK_F8:        return XK_F8;
+        case SDLK_F9:        return XK_F9;
+        case SDLK_F10:       return XK_F10;
+        case SDLK_F11:       return XK_F11;
+        case SDLK_F12:       return XK_F12;
+        case SDLK_LSHIFT:    return XK_Shift_L;
+        case SDLK_RSHIFT:    return XK_Shift_R;
+        case SDLK_LCTRL:     return XK_Control_L;
+        case SDLK_RCTRL:     return XK_Control_R;
+        case SDLK_LALT:      return XK_Alt_L;
+        case SDLK_RALT:      return XK_Alt_R;
+        case SDLK_CAPSLOCK:  return XK_Caps_Lock;
+        case SDLK_INSERT:    return XK_Insert;
+        case SDLK_HOME:      return XK_Home;
+        case SDLK_END:       return XK_End;
+        case SDLK_PAGEUP:    return XK_Page_Up;
+        case SDLK_PAGEDOWN:  return XK_Page_Down;
+        case SDLK_KP_0:      return XK_KP_0;
+        case SDLK_KP_1:      return XK_KP_1;
+        case SDLK_KP_2:      return XK_KP_2;
+        case SDLK_KP_3:      return XK_KP_3;
+        case SDLK_KP_4:      return XK_KP_4;
+        case SDLK_KP_5:      return XK_KP_5;
+        case SDLK_KP_6:      return XK_KP_6;
+        case SDLK_KP_7:      return XK_KP_7;
+        case SDLK_KP_8:      return XK_KP_8;
+        case SDLK_KP_9:      return XK_KP_9;
+        case SDLK_KP_ENTER:  return XK_KP_Enter;
+    }
+    if (Key < 128) return (unsigned int)Key;
+    return 0;
+}
+
 int InitUnix(const char *Title, int Width, int Height) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         return 0;
     }
 
-    SDLWindow = SDL_CreateWindow(Title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+
+    SDLWindow = SDL_CreateWindow(Title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!SDLWindow) return 0;
 
     Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -75,26 +176,56 @@ void TrashUnix(void) {
     SDL_Quit();
 }
 
-int ProcessEvents(int Wait) {
-    SDL_Event Event;
+static void HandleSDLEvent(SDL_Event *Event) {
+    switch (Event->type) {
+        case SDL_QUIT:
+            ExitNow = 1;
+            break;
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+            {
+                unsigned int Key = SDLToKeysym(Event->key.keysym.sym);
+                if (Key) {
+                    if (Event->type == SDL_KEYUP) Key |= CON_RELEASE;
 
-    if (Wait) SDL_WaitEvent(&Event);
+                    SDL_Keymod Mod = SDL_GetModState();
+                    if (Mod & KMOD_SHIFT) Key |= CON_SHIFT;
+                    if (Mod & KMOD_CTRL)  Key |= CON_CONTROL;
+                    if (Mod & KMOD_ALT)   Key |= CON_ALT;
+                    if (Mod & KMOD_CAPS)  Key |= CON_CAPS;
 
-    while (SDL_PollEvent(&Event)) {
-        switch (Event.type) {
-            case SDL_QUIT:
-                ExitNow = 1;
-                return 0;
-            case SDL_KEYDOWN:
-            case SDL_KEYUP:
-                {
-                    unsigned int Key = Event.key.keysym.sym;
-                    if (Event.type == SDL_KEYUP) Key |= CON_RELEASE;
+                    if (Verbose & 64) {
+                        printf("SDL Key: %s (0x%X) -> EMULib: 0x%X [%s]\n",
+                            SDL_GetKeyName(Event->key.keysym.sym),
+                            (unsigned int)Event->key.keysym.sym,
+                            Key,
+                            (Key & CON_RELEASE) ? "RELEASE" : "PRESS");
+                    }
+
                     LastKey = Key;
                     if (KeyHandler) KeyHandler(Key);
                 }
-                break;
-        }
+            }
+            break;
+        case SDL_WINDOWEVENT:
+            if (Event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED ||
+                Event->window.event == SDL_WINDOWEVENT_EXPOSED ||
+                Event->window.event == SDL_WINDOWEVENT_RESIZED) {
+                ShowVideo();
+            }
+            break;
+    }
+}
+
+int ProcessEvents(int Wait) {
+    SDL_Event Event;
+
+    if (Wait) {
+        if (SDL_WaitEvent(&Event)) HandleSDLEvent(&Event);
+    }
+
+    while (SDL_PollEvent(&Event)) {
+        HandleSDLEvent(&Event);
     }
     return !ExitNow;
 }
@@ -104,7 +235,15 @@ void SetEffects(unsigned int NewEffects) {
 }
 
 unsigned int ParseEffects(char *Args[], unsigned int Effects) {
-  /* Stub for now */
+  int J;
+  for (J = 1; Args[J]; ++J) {
+    if (!strcmp(Args[J], "-soften")) Effects |= EFF_SOFTEN;
+    else if (!strcmp(Args[J], "-nosoften")) Effects &= ~EFF_SOFTEN;
+    else if (!strcmp(Args[J], "-scanlines")) Effects |= EFF_TVLINES;
+    else if (!strcmp(Args[J], "-noscanlines")) Effects &= ~EFF_TVLINES;
+    else if (!strcmp(Args[J], "-sync")) Effects |= EFF_SYNC;
+    else if (!strcmp(Args[J], "-nosync")) Effects &= ~EFF_SYNC;
+  }
   return Effects;
 }
 
@@ -131,8 +270,25 @@ int ShowVideo(void) {
     if (!Texture) return 0;
 
     SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
+    
+    SDL_Rect SrcRect = { VideoX, VideoY, VideoW, VideoH };
+    
+    SDL_RenderSetViewport(Renderer, NULL);
+    SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
     SDL_RenderClear(Renderer);
-    SDL_RenderCopy(Renderer, Texture, NULL, NULL);
+    SDL_RenderCopy(Renderer, Texture, &SrcRect, NULL);
+
+    /* Draw scanlines over the rendered image if enabled */
+    if (Effects & EFF_TVLINES) {
+        int WW, WH;
+        SDL_GetRendererOutputSize(Renderer, &WW, &WH);
+        SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 48); /* ~20% transparency */
+        for (int y = 0; y < WH; y += 2) {
+            SDL_RenderDrawLine(Renderer, 0, y, WW, y);
+        }
+    }
+
     SDL_RenderPresent(Renderer);
 
     return 1;
@@ -154,10 +310,12 @@ int WaitSyncTimer(void) {
 }
 
 unsigned int GetJoystick(void) {
+    ProcessEvents(0);
     return JoyState;
 }
 
 unsigned int GetKey(void) {
+    ProcessEvents(0);
     unsigned int J = LastKey;
     LastKey = 0;
     return J;
@@ -169,10 +327,16 @@ unsigned int WaitKey(void) {
 }
 
 unsigned int GetMouse(void) {
-    int X, Y;
+    int X, Y, WW, WH;
     Uint32 Buttons = SDL_GetMouseState(&X, &Y);
+    SDL_GetWindowSize(SDLWindow, &WW, &WH);
+    
+    if (WW > 0 && WH > 0) {
+        X = X * VideoW / WW;
+        Y = Y * VideoH / WH;
+    }
+    
     unsigned int J = 0;
-
     if (Buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) J |= MSE_LEFT;
     if (Buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) J |= MSE_RIGHT;
 
@@ -186,7 +350,6 @@ unsigned int WaitKeyOrMouse(void) {
 }
 
 unsigned int X11GetColor(unsigned char R, unsigned char G, unsigned char B) {
-    /* Use the same formulas as EMULib/Unix/LibUnix.h for consistency */
 #if defined(BPP32) || !defined(PIXEL)
     return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
 #elif defined(BPP16)
@@ -196,4 +359,16 @@ unsigned int X11GetColor(unsigned char R, unsigned char G, unsigned char B) {
 #else
     return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
 #endif
+}
+
+pixel *NewImage(Image *Img,int Width,int Height) {
+  return GenericNewImage(Img,Width,Height);
+}
+
+void FreeImage(Image *Img) {
+  GenericFreeImage(Img);
+}
+
+void SetVideo(Image *Img,int X,int Y,int W,int H) {
+  GenericSetVideo(Img,X,Y,W,H);
 }

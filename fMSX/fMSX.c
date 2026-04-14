@@ -27,6 +27,7 @@ static const char *Options[]=
   "ram","vram","rom","auto","noauto","msx1","msx2","msx2+","joy",
   "home","simbdos","wd1793","sound","nosound","trap","sync","nosync",
   "scale","static","nostatic","vsync","480","200",
+  "scanlines","noscanlines",
   0
 };
 
@@ -88,18 +89,24 @@ int main(int argc,char *argv[])
 #endif
 
   for(N=1;(N<argc)&&argv[N];N++)
-    if(*argv[N]!='-')
+  {
+    if((*argv[N]!='-')||!strcmp(argv[N],"--help"))
     {
-      if(CartCount<MAXCARTS) ROMName[CartCount++]=argv[N];
-      else printf("%s: Excessive filename '%s'\n",argv[0],argv[N]);
+      if(!strcmp(argv[N],"--help")) J=4;
+      else
+      {
+        if(CartCount<MAXCARTS) { ROMName[CartCount++]=argv[N];continue; }
+        else { printf("%s: Excessive filename '%s'\n",argv[0],argv[N]);continue; }
+      }
     }
     else
     {    
       for(J=0;Options[J];J++)
         if(!strcmp(argv[N]+1,Options[J])) break;
+    }
 
-      switch(J)
-      {
+    switch(J)
+    {
         case 0:  N++;
                  if(N<argc) Verbose=atoi(argv[N]);
                  else printf("%s: No verbose level supplied\n",argv[0]);
@@ -255,9 +262,12 @@ int main(int argc,char *argv[])
         case 35: FullScreen=0;break;
 #endif /* MSDOS */
 
+        case 36: UseEffects|=EFF_TVLINES;break;
+        case 37: UseEffects&=~EFF_TVLINES;break;
+
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
       }
-    }
+  }
 
   /* Terminate disk lists and set initial disk names */
   if(DiskCount[0]) { Disks[0][DiskCount[0]]=0;DSKName[0]=Disks[0][0]; }
