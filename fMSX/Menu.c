@@ -162,10 +162,14 @@ void MenuMSX(void)
         RedrawMain(MainS,J);
         P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0.dsk\0.dsk.gz\0.sta\0.sta.gz\0.cas\0.fnt\0.fnt.gz\0.cht\0.pal\0");
         /* Try loading file, show error on failure */
-        if(P&&!LoadSTA(P)&&!LoadFile(P))
+        if(P)
         {
-          RedrawMain(MainS,J);
-          CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load file.\0\0");
+          if(!LoadSTA(P)&&!LoadFile(P))
+          {
+            RedrawMain(MainS,J);
+            CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load file.\0\0");
+          }
+          else J=0; /* Close menu on success */
         }
         break;
 
