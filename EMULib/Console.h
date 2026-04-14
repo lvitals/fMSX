@@ -57,6 +57,8 @@ extern "C" {
 /** CONSetColor()/CONSetFont() *******************************/
 /** Set current foreground and background colors, and font. **/
 /*************************************************************/
+extern const unsigned char NormalFont[];
+extern const unsigned char BoldFont[];
 void CONSetColor(pixel FGColor,pixel BGColor);
 void CONSetFont(const unsigned char *Font);
 const unsigned char *CONGetFont();

@@ -184,7 +184,8 @@ int InitUnix(const char *Title, int Width, int Height) {
     if (!SDLWindow) return 0;
 
     Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, 0);
+    if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_PRESENTVSYNC);
+    if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_SOFTWARE);
     if (!Renderer) return 0;
 
     SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
@@ -287,7 +288,8 @@ int ShowVideo(void) {
         
         Uint32 Format;
         switch (VideoImg->D) {
-            case 32: Format = SDL_PIXELFORMAT_ARGB8888; break;
+            case 32: Format = SDL_PIXELFORMAT_XRGB8888; break;
+            case 24: Format = SDL_PIXELFORMAT_RGB24; break;
             case 16: Format = SDL_PIXELFORMAT_RGB565; break;
             case 8:  Format = SDL_PIXELFORMAT_RGB332; break;
             default: Format = SDL_PIXELFORMAT_UNKNOWN; break;

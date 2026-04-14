@@ -18,6 +18,7 @@
 #include "Floppy.h"
 #include "SHA1.h"
 #include "MCF.h"
+#include "Console.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -115,7 +116,11 @@ const char *SndName = "LOG.MID";   /* Sound log file         */
 const char *STAName = "DEFAULT.STA";/* State file (autogen-d)*/
 
 /** Fixed font used by fMSX **********************************/
-const char *FNTName = "DEFAULT.FNT"; /* Font file for text   */
+#ifdef SDL2
+const char *FNTName = "DEFAULT.FNT";/* Font file for text   */
+#else
+const char *FNTName = 0;           /* Font file for text   */
+#endif
 byte *FontBuf;                     /* Font for text modes    */
 
 /** Printer **************************************************/
@@ -494,6 +499,19 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   {
     if(Verbose) printf("Loading %s font...",FNTName);
     J=LoadFNT(FNTName);
+#ifdef SDL2
+    if(!J && !strcmp(FNTName,"DEFAULT.FNT"))
+    {
+      if(!FontBuf) FontBuf=GetMemory(256*8);
+      if(FontBuf)
+      {
+        memset(FontBuf,0,256*8);
+        memcpy(FontBuf,NormalFont,128*8);
+        J=1;
+        if(Verbose) printf("using built-in font...");
+      }
+    }
+#endif
     PRINTRESULT(J);
   }
 

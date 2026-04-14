@@ -99,6 +99,8 @@ void GenericSetVideo(Image *Img,int X,int Y,int W,int H)
   VideoY   = Y<0? 0:Y>=Img->H? Img->H-1:Y;
   VideoW   = VideoX+W>Img->W? Img->W-VideoX:W;
   VideoH   = VideoY+H>Img->H? Img->H-VideoY:H;
+  if(VideoW<1) VideoW=1;
+  if(VideoH<1) VideoH=1;
 }
 
 /** WaitJoystick() *******************************************/
