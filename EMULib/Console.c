@@ -44,6 +44,7 @@ static pixel BG = PIXEL(0,0,0);
 #define EOLN(C)      (!(C)||((C)=='\n'))
 #define TAG_SELEFILE 0x5E7EF17E
 #define CON_RELOAD   0x0101
+#define CON_BACK     0x0102
 
 const unsigned char NormalFont[] =
 {
@@ -396,6 +397,7 @@ static char Result[2048];
 static char LastDir[2048] = "";
 static int ShowHidden = 0;
 static const char *CON_RELOAD_PTR = "\01RELOAD";
+static const char *CON_BACK_PTR   = "\02BACK";
 
 static const char *nth(const char *S,int N)
 {
@@ -937,10 +939,10 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
     /* SPACE, ENTER, TAB treated as "OK" */
     if(((J==' ')&&!FileSelect)||(J==0x0A)||(J==0x0D)) J=CON_OK;
 
-    /* ESCAPE treated as "EXIT" */
-    if(J==0x1B) J=CON_EXIT;
-    /* BS treated as "EXIT" if not filtering or filter already empty */
-    if((J==0x08)&&(!FileSelect||(FilterLen<=0))) J=CON_EXIT;
+    /* ESCAPE treated as "BACK" */
+    if(J==0x1B) J=CON_BACK;
+    /* BS treated as "BACK" if not filtering or filter already empty */
+    if((J==0x08)&&(!FileSelect||(FilterLen<=0))) J=CON_BACK;
 
     /* Erase arrow */
     CONChar(X+1,Y+2+Item,' ');
@@ -1076,19 +1078,23 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       if(Offset > 0) { Offset--;Draw=1; }
     }
   }
-  while((J!=CON_OK)&&(J!=CON_EXIT)&&(J!=CON_RELOAD));
+  while((J!=CON_OK)&&(J!=CON_EXIT)&&(J!=CON_RELOAD)&&(J!=CON_BACK));
 
   /* Return selection */
   return(FileSelect?
-    (J==CON_RELOAD? CON_RELOAD_PTR : (J==CON_OK? nth(Items,Top+Item+1):0))
-  : (J==CON_OK? Result+Top+Item+1:Result)
+    (J==CON_RELOAD? CON_RELOAD_PTR : (J==CON_BACK? 0 : (J==CON_OK? nth(Items,Top+Item+1):0)))
+  : (J==CON_BACK? CON_BACK_PTR : (J==CON_OK? Result+Top+Item+1:Result))
   );
 }
 
 int CONMenu(int X,int Y,int W,int H,pixel FGColor,pixel BGColor,const char *Items,int Item)
 {
+  const char *P;
   /* Call internal selector implementation */
-  return(Item!=TAG_SELEFILE? CONSelector(X,Y,W,H,FGColor,BGColor,Items,Item)-Result:0);
+  if(Item==TAG_SELEFILE) return(0);
+  P = CONSelector(X,Y,W,H,FGColor,BGColor,Items,Item);
+  if(P==CON_BACK_PTR) return(-1);
+  return(P? P-Result:0);
 }
 
 const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)

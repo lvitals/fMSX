@@ -58,6 +58,10 @@ void MenuMSX(void)
   /* Display and activate top menu */
   for(J=1;J;)
   {
+    /* Redraw background */
+    if(RefreshLine[ScrMode])
+      for(I=0;I<(ScanLines212? 212:192);++I) RefreshLine[ScrMode](I);
+
     /* Compose menu */
     sprintf(S,
       "fMSX\n"
@@ -94,7 +98,11 @@ void MenuMSX(void)
     /* Replace all EOLNs with zeroes */
     for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
     /* Run menu */
-    J=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK,S,J);
+    K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK,S,J);
+    /* Exit top menu on ESC */
+    if(K<0) break;
+    /* Update selection */
+    J=K;
     /* Handle menu selection */
     switch(J)
     {
@@ -104,15 +112,15 @@ void MenuMSX(void)
         /* Try loading file, show error on failure */
         if(P&&!LoadSTA(P)&&!LoadFile(P))
           CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot load file.\0\0");
-        /* Exit top menu */
-        J=0;
         break;
 
       case 2: /* Save state, printer output, or soundtrack */
         /* Run menu */
-        switch(CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,
+        V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,
           "Save File\0Emulation state\0Printer output\0MIDI soundtrack\0",1
-        ))
+        );
+        if(V<0) break;
+        switch(V)
         {
           case 1: /* Save state */
             /* Request file name */
@@ -120,16 +128,12 @@ void MenuMSX(void)
             /* Try saving state, show error on failure */
             if(P&&!SaveSTA(P))
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot save state.\0\0");
-            /* Exit top menu */
-            J=0;
             break;
           case 2: /* Printer output file */
             /* Request file name */
             P=CONFile(CLR_TEXT,CLR_BACK2,".prn\0.out\0.txt\0");
             /* Try changing printer output */
             if(P) ChangePrinter(P);
-            /* Exit top menu */
-            J=0;
             break;
           case 3: /* Soundtrack output file */
             /* Request file name */
@@ -147,8 +151,6 @@ void MenuMSX(void)
                 MIDILogging(MIDI_ON);
               }
             }
-            /* Exit top menu */
-            J=0;
             break;
         }
         break;
@@ -181,7 +183,11 @@ void MenuMSX(void)
           /* Replace all EOLNs with zeroes */
           for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
           /* Run menu */
-          K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          /* Exit submenu on ESC */
+          if(V<0) break;
+          /* Update selection */
+          K=V;
           /* Handle menu selection */
           switch(K)
           {
@@ -195,8 +201,6 @@ void MenuMSX(void)
             case 11: K=0;break;
           }
         }
-        /* Exit top menu */
-        J=0;
         break;
 
       case 5: /* Input devices */
@@ -235,7 +239,11 @@ void MenuMSX(void)
           /* Replace all EOLNs with zeroes */
           for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
           /* Run menu */
-          K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          /* Exit submenu on ESC */
+          if(V<0) break;
+          /* Update selection */
+          K=V;
           /* Handle menu selection */
           switch(K)
           {
@@ -253,8 +261,6 @@ void MenuMSX(void)
             case 15: K=0;break;
           }
         }
-        /* Exit top menu */
-        J=0;
         break;
 
       case 6: /* Cartridge slots */
@@ -269,9 +275,9 @@ void MenuMSX(void)
         /* Replace all EOLNs with zeroes */
         for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
         /* Get cartridge slot number */
-        N=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
-        /* Exit to top menu if cancelled */
-        if(!N) break; else --N;
+        V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
+        /* Exit to top menu if cancelled or ESC */
+        if(V<=0) break; else N=V-1;
         /* Run slot-specific menu */
         for(K=1;K;)
         {
@@ -306,7 +312,11 @@ void MenuMSX(void)
           /* Replace all EOLNs with zeroes */
           for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
           /* Run menu */
-          K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
+          /* Exit submenu on ESC */
+          if(V<0) break;
+          /* Update selection */
+          K=V;
           /* Handle menu selection */
           switch(K)
           {
@@ -332,8 +342,6 @@ void MenuMSX(void)
             case 14: K=0;break;
           }
         }
-        /* Exit top menu */
-        J=0;
         break;
 
       case 7: /* Disk drives */
@@ -348,9 +356,9 @@ void MenuMSX(void)
         /* Replace all EOLNs with zeroes */
         for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
         /* Get disk drive number */
-        N=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
-        /* Exit to top menu if cancelled */
-        if(!N) break; else --N;
+        V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
+        /* Exit to top menu if cancelled or ESC */
+        if(V<=0) break; else N=V-1;
         /* Create disk operations menu */
         sprintf(S,
           "Disk Drive %c:\n"
@@ -365,7 +373,9 @@ void MenuMSX(void)
         /* Replace all EOLNs with zeroes */
         for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
         /* Run menu and handle menu selection */
-        switch(CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1))
+        V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
+        if(V<0) break;
+        switch(V)
         {
           case 1: /* Load disk */
             P=CONFile(CLR_TEXT,CLR_BACK3,".dsk\0.dsk.gz\0.fdi\0.fdi.gz\0");
@@ -389,8 +399,6 @@ void MenuMSX(void)
               CONMsg(-1,-1,-1,-1,CLR_BACK,CLR_ERROR,"Error","Cannot save disk image.\0\0");
             break;
         }
-        /* Exit top menu */
-        J=0;
         break;
 
       case 8: /* Cheats */
@@ -420,7 +428,11 @@ void MenuMSX(void)
           /* Replace all EOLNs with zeroes */
           for(J=0;PP[J];J++) if(PP[J]=='\n') PP[J]='\0';
           /* Run menu */
-          I=CONMenu(-1,-1,16,24,CLR_TEXT,CLR_BACK4,PP,I);
+          V=CONMenu(-1,-1,16,24,CLR_TEXT,CLR_BACK4,PP,I);
+          /* Exit submenu on ESC */
+          if(V<0) break;
+          /* Update selection */
+          I=V;
           /* Handle menu selection */
           switch(I)
           {
@@ -448,7 +460,6 @@ void MenuMSX(void)
         if(K) Cheats(CHTS_ON);
         /* Done */
         free(PP);
-        J=0;
         break;
 
       case 9: /* Hunt for cheat codes */
@@ -470,7 +481,11 @@ void MenuMSX(void)
           for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
 
           /* Run menu */
-          I=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK5,S,I);
+          V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK5,S,I);
+          /* Exit submenu on ESC */
+          if(V<0) break;
+          /* Update selection */
+          I=V;
 
           /* Handle menu selection */
           switch(I)
@@ -523,7 +538,11 @@ void MenuMSX(void)
                 for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
 
                 /* Run menu */
-                I=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK2,S,I);
+                N=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK2,S,I);
+                /* Exit submenu on ESC */
+                if(N<0) break;
+                /* Update selection */
+                I=N;
 
                 /* Change options */
                 switch(I)
@@ -531,8 +550,8 @@ void MenuMSX(void)
                   case 1:
                     /* Ask for replacement value in 0..65535 range */
                     P  = CONInput(-1,-1,CLR_TEXT,CLR_BACK4,"New Value",S,6|CON_DEC);
-                    I  = P? strtoul(P,0,10):-1;
-                    V = (I>=0)&&(I<0x10000)? I:V;
+                    N  = P? strtoul(P,0,10):-1;
+                    V = (N>=0)&&(N<0x10000)? N:V;
                     I  = 1;
                     break;
                   case 3:  M&=~HUNT_16BIT;break;
@@ -591,7 +610,11 @@ void MenuMSX(void)
                 for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
      
                 /* Run menu */
-                I=CONMenu(-1,-1,-1,16,CLR_TEXT,CLR_BACK2,S,I);
+                N=CONMenu(-1,-1,-1,16,CLR_TEXT,CLR_BACK2,S,I);
+                /* Exit submenu on ESC */
+                if(N<0) break;
+                /* Update selection */
+                I=N;
      
                 /* Toggle checkmarks */
                 if((I>=1)&&(I<=K)) M^=1<<(I-1);
@@ -629,7 +652,6 @@ void MenuMSX(void)
               break;
           }
         }
-        J=0;
         break;
 
       case 11: /* Log MIDI soundtrack */
