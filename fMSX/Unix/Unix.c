@@ -489,6 +489,7 @@ void HandleKeys(unsigned int Key)
   {
     switch(Key&CON_KEYCODE)
     {
+      case CON_F9:
       case XK_F9:
         if(FastForward)
         {
@@ -498,6 +499,33 @@ void HandleKeys(unsigned int Key)
         }
         break;
 
+      case CON_BS:
+      case XK_BackSpace: XKBD_RES(KBD_BS);break;
+      case CON_TAB:
+      case XK_Tab:       XKBD_RES(KBD_TAB);break;
+      case CON_INSERT:
+      case XK_Insert:    XKBD_RES(KBD_INSERT);break;
+      case CON_DELETE:
+      case XK_Delete:    XKBD_RES(KBD_DELETE);break;
+      case CON_UP:
+      case XK_Up:        XKBD_RES(KBD_UP);break;
+      case CON_DOWN:
+      case XK_Down:      XKBD_RES(KBD_DOWN);break;
+      case CON_LEFT:
+      case XK_Left:      XKBD_RES(KBD_LEFT);break;
+      case CON_RIGHT:
+      case XK_Right:     XKBD_RES(KBD_RIGHT);break;
+      case CON_F1:
+      case XK_F1:        XKBD_RES(KBD_F1);break;
+      case CON_F2:
+      case XK_F2:        XKBD_RES(KBD_F2);break;
+      case CON_F3:
+      case XK_F3:        XKBD_RES(KBD_F3);break;
+      case CON_F4:
+      case XK_F4:        XKBD_RES(KBD_F4);break;
+      case CON_F5:
+      case XK_F5:        XKBD_RES(KBD_F5);break;
+
       case XK_Shift_L:
       case XK_Shift_R:   XKBD_RES(KBD_SHIFT);break;
       case XK_Control_L:
@@ -505,25 +533,14 @@ void HandleKeys(unsigned int Key)
       case XK_Alt_L:
       case XK_Alt_R:     XKBD_RES(KBD_GRAPH);break;
       case XK_Caps_Lock: XKBD_RES(KBD_CAPSLOCK);break;
+      case CON_EXIT:     /* ESC */
       case XK_Escape:    XKBD_RES(KBD_ESCAPE);break;
+      case CON_OK:       /* Enter */
       case XK_Return:    XKBD_RES(KBD_ENTER);break;
-      case XK_BackSpace: XKBD_RES(KBD_BS);break;
-      case XK_Tab:       XKBD_RES(KBD_TAB);break;
       case XK_End:       XKBD_RES(KBD_SELECT);break;
       case XK_Home:      XKBD_RES(KBD_HOME);break;
       case XK_Page_Up:   XKBD_RES(KBD_STOP);break;
       case XK_Page_Down: XKBD_RES(KBD_COUNTRY);break;
-      case XK_Insert:    XKBD_RES(KBD_INSERT);break;
-      case XK_Delete:    XKBD_RES(KBD_DELETE);break;
-      case XK_Up:        XKBD_RES(KBD_UP);break;
-      case XK_Down:      XKBD_RES(KBD_DOWN);break;
-      case XK_Left:      XKBD_RES(KBD_LEFT);break;
-      case XK_Right:     XKBD_RES(KBD_RIGHT);break;
-      case XK_F1:        XKBD_RES(KBD_F1);break;
-      case XK_F2:        XKBD_RES(KBD_F2);break;
-      case XK_F3:        XKBD_RES(KBD_F3);break;
-      case XK_F4:        XKBD_RES(KBD_F4);break;
-      case XK_F5:        XKBD_RES(KBD_F5);break;
 
       default:
         Key&=CON_KEYCODE;
@@ -535,17 +552,20 @@ void HandleKeys(unsigned int Key)
   {
     /* Cancel replay when a key is pressed */
     J = Key&CON_KEYCODE;
-    if((J!=XK_F9)&&(J!=XK_Left)&&(J!=XK_Right)&&(J!=XK_Up)) RPLPlay(RPL_OFF);
+    if((J!=XK_F9)&&(J!=CON_F9)&&(J!=XK_Left)&&(J!=CON_LEFT)&&(J!=XK_Right)&&(J!=CON_RIGHT)&&(J!=XK_Up)&&(J!=CON_UP)) RPLPlay(RPL_OFF);
 
     switch(Key&CON_KEYCODE)
     {
+      case CON_F6:
       case XK_F6:
         LoadSTA(STAName? STAName:"DEFAULT.STA");
         RPLPlay(RPL_OFF);
         break;
+      case CON_F7:
       case XK_F7:
         SaveSTA(STAName? STAName:"DEFAULT.STA");
         break;
+      case CON_F8:
       case XK_F8:
         if(!(Key&(CON_ALT|CON_CONTROL))) RPLPlay(RPL_RESET);
         else
@@ -556,6 +576,7 @@ void HandleKeys(unsigned int Key)
           SetEffects(UseEffects);
         }
         break;
+      case CON_F9:
       case XK_F9:
         if(!FastForward) 
         {
@@ -564,6 +585,7 @@ void HandleKeys(unsigned int Key)
           UPeriod=10;  
         }
         break;
+      case CON_F10:
       case XK_F10:
 #ifdef DEBUG
         /* [CTRL]+[F10] invokes built-in debugger */
@@ -581,13 +603,16 @@ void HandleKeys(unsigned int Key)
         }
         /* [F10] invokes built-in menu */
         InMenu=1;
+        ClearKey();
         MenuMSX();
         InMenu=0;
         break;
+      case CON_F11:
       case XK_F11:
         ResetMSX(Mode,RAMPages,VRAMPages);
         RPLPlay(RPL_OFF);
         break;
+      case CON_F12:
       case XK_F12:
         ExitNow=1;
         break;
@@ -599,24 +624,39 @@ void HandleKeys(unsigned int Key)
       case XK_Alt_L:
       case XK_Alt_R:     XKBD_SET(KBD_GRAPH);break;
       case XK_Caps_Lock: XKBD_SET(KBD_CAPSLOCK);break;
+      case CON_EXIT:
       case XK_Escape:    XKBD_SET(KBD_ESCAPE);break;
+      case CON_OK:
       case XK_Return:    XKBD_SET(KBD_ENTER);break;
+      case CON_BS:
       case XK_BackSpace: XKBD_SET(KBD_BS);break;
+      case CON_TAB:
       case XK_Tab:       XKBD_SET(KBD_TAB);break;
       case XK_End:       XKBD_SET(KBD_SELECT);break;
       case XK_Home:      XKBD_SET(KBD_HOME);break;
       case XK_Page_Up:   XKBD_SET(KBD_STOP);break;
       case XK_Page_Down: XKBD_SET(KBD_COUNTRY);break;
+      case CON_INSERT:
       case XK_Insert:    XKBD_SET(KBD_INSERT);break;
+      case CON_DELETE:
       case XK_Delete:    XKBD_SET(KBD_DELETE);break;
+      case CON_UP:
       case XK_Up:        XKBD_SET(KBD_UP);break;
+      case CON_DOWN:
       case XK_Down:      XKBD_SET(KBD_DOWN);break;
+      case CON_LEFT:
       case XK_Left:      XKBD_SET(KBD_LEFT);break;
+      case CON_RIGHT:
       case XK_Right:     XKBD_SET(KBD_RIGHT);break;
+      case CON_F1:
       case XK_F1:        XKBD_SET(KBD_F1);break;
+      case CON_F2:
       case XK_F2:        XKBD_SET(KBD_F2);break;
+      case CON_F3:
       case XK_F3:        XKBD_SET(KBD_F3);break;
+      case CON_F4:
       case XK_F4:        XKBD_SET(KBD_F4);break;
+      case CON_F5:
       case XK_F5:        XKBD_SET(KBD_F5);break;
 
       default:

@@ -96,27 +96,27 @@ static Uint32 TimerCallback(Uint32 interval, void *param) {
 
 static unsigned int SDLToKeysym(SDL_Keycode Key) {
     switch (Key) {
-        case SDLK_BACKSPACE: return XK_BackSpace;
-        case SDLK_TAB:       return XK_Tab;
-        case SDLK_RETURN:    return XK_Return;
-        case SDLK_ESCAPE:    return XK_Escape;
-        case SDLK_DELETE:    return XK_Delete;
-        case SDLK_UP:        return XK_Up;
-        case SDLK_DOWN:      return XK_Down;
-        case SDLK_LEFT:      return XK_Left;
-        case SDLK_RIGHT:     return XK_Right;
-        case SDLK_F1:        return XK_F1;
-        case SDLK_F2:        return XK_F2;
-        case SDLK_F3:        return XK_F3;
-        case SDLK_F4:        return XK_F4;
-        case SDLK_F5:        return XK_F5;
-        case SDLK_F6:        return XK_F6;
-        case SDLK_F7:        return XK_F7;
-        case SDLK_F8:        return XK_F8;
-        case SDLK_F9:        return XK_F9;
-        case SDLK_F10:       return XK_F10;
-        case SDLK_F11:       return XK_F11;
-        case SDLK_F12:       return XK_F12;
+        case SDLK_BACKSPACE: return CON_BS;
+        case SDLK_TAB:       return CON_TAB;
+        case SDLK_RETURN:    return CON_OK;
+        case SDLK_ESCAPE:    return CON_EXIT;
+        case SDLK_DELETE:    return CON_DELETE;
+        case SDLK_UP:        return CON_UP;
+        case SDLK_DOWN:      return CON_DOWN;
+        case SDLK_LEFT:      return CON_LEFT;
+        case SDLK_RIGHT:     return CON_RIGHT;
+        case SDLK_F1:        return CON_F1;
+        case SDLK_F2:        return CON_F2;
+        case SDLK_F3:        return CON_F3;
+        case SDLK_F4:        return CON_F4;
+        case SDLK_F5:        return CON_F5;
+        case SDLK_F6:        return CON_F6;
+        case SDLK_F7:        return CON_F7;
+        case SDLK_F8:        return CON_F8;
+        case SDLK_F9:        return CON_F9;
+        case SDLK_F10:       return CON_F10;
+        case SDLK_F11:       return CON_F11;
+        case SDLK_F12:       return CON_F12;
         case SDLK_LSHIFT:    return XK_Shift_L;
         case SDLK_RSHIFT:    return XK_Shift_R;
         case SDLK_LCTRL:     return XK_Control_L;
@@ -124,7 +124,7 @@ static unsigned int SDLToKeysym(SDL_Keycode Key) {
         case SDLK_LALT:      return XK_Alt_L;
         case SDLK_RALT:      return XK_Alt_R;
         case SDLK_CAPSLOCK:  return XK_Caps_Lock;
-        case SDLK_INSERT:    return XK_Insert;
+        case SDLK_INSERT:    return CON_INSERT;
         case SDLK_HOME:      return XK_Home;
         case SDLK_END:       return XK_End;
         case SDLK_PAGEUP:    return XK_Page_Up;
@@ -139,7 +139,7 @@ static unsigned int SDLToKeysym(SDL_Keycode Key) {
         case SDLK_KP_7:      return XK_KP_7;
         case SDLK_KP_8:      return XK_KP_8;
         case SDLK_KP_9:      return XK_KP_9;
-        case SDLK_KP_ENTER:  return XK_KP_Enter;
+        case SDLK_KP_ENTER:  return CON_OK;
         
         /* Map common symbols explicitly */
         case SDLK_QUOTE:     return '\'';
@@ -231,7 +231,7 @@ static void HandleSDLEvent(SDL_Event *Event) {
                             (Key & CON_RELEASE) ? "RELEASE" : "PRESS");
                     }
 
-                    LastKey = Key;
+                    if (!(Key & CON_RELEASE)) LastKey = Key;
                     if (KeyHandler) KeyHandler(Key);
                 }
             }
@@ -372,6 +372,11 @@ unsigned int GetKey(void) {
     unsigned int J = LastKey;
     LastKey = 0;
     return J;
+}
+
+void ClearKey(void) {
+    while (GetKey()) ;
+    LastKey = 0;
 }
 
 unsigned int WaitKey(void) {
