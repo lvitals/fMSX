@@ -233,7 +233,66 @@ static void HandleSDLEvent(SDL_Event *Event) {
                             (Key & CON_RELEASE) ? "RELEASE" : "PRESS");
                     }
 
-                    if (!(Key & CON_RELEASE)) LastKey = Key;
+                    if (!(Key & CON_RELEASE)) {
+                        LastKey = Key;
+                        switch (Event->key.keysym.sym) {
+                            case SDLK_UP:        JoyState |= BTN_UP; break;
+                            case SDLK_DOWN:      JoyState |= BTN_DOWN; break;
+                            case SDLK_LEFT:      JoyState |= BTN_LEFT; break;
+                            case SDLK_RIGHT:     JoyState |= BTN_RIGHT; break;
+                            case SDLK_LSHIFT:
+                            case SDLK_RSHIFT:    JoyState |= BTN_SHIFT; break;
+                            case SDLK_LCTRL:
+                            case SDLK_RCTRL:     JoyState |= BTN_CONTROL; break;
+                            case SDLK_LALT:
+                            case SDLK_RALT:      JoyState |= BTN_ALT; break;
+                            case SDLK_SPACE:
+                            case SDLK_a: case SDLK_s: case SDLK_d: case SDLK_f:
+                            case SDLK_g: case SDLK_h: case SDLK_j: case SDLK_k:
+                            case SDLK_l:         JoyState |= BTN_FIREA; break;
+                            case SDLK_z: case SDLK_x: case SDLK_c: case SDLK_v:
+                            case SDLK_b: case SDLK_n: case SDLK_m:
+                                                 JoyState |= BTN_FIREB; break;
+                            case SDLK_q: case SDLK_e: case SDLK_t:
+                            case SDLK_u: case SDLK_o:
+                                                 JoyState |= BTN_FIREL; break;
+                            case SDLK_w: case SDLK_r: case SDLK_y:
+                            case SDLK_i: case SDLK_p:
+                                                 JoyState |= BTN_FIRER; break;
+                            case SDLK_RETURN:    JoyState |= BTN_START; break;
+                            case SDLK_TAB:       JoyState |= BTN_SELECT; break;
+                            case SDLK_ESCAPE:    JoyState |= BTN_EXIT; break;
+                        }
+                    } else {
+                        switch (Event->key.keysym.sym) {
+                            case SDLK_UP:        JoyState &= ~BTN_UP; break;
+                            case SDLK_DOWN:      JoyState &= ~BTN_DOWN; break;
+                            case SDLK_LEFT:      JoyState &= ~BTN_LEFT; break;
+                            case SDLK_RIGHT:     JoyState &= ~BTN_RIGHT; break;
+                            case SDLK_LSHIFT:
+                            case SDLK_RSHIFT:    JoyState &= ~BTN_SHIFT; break;
+                            case SDLK_LCTRL:
+                            case SDLK_RCTRL:     JoyState &= ~BTN_CONTROL; break;
+                            case SDLK_LALT:
+                            case SDLK_RALT:      JoyState &= ~BTN_ALT; break;
+                            case SDLK_SPACE:
+                            case SDLK_a: case SDLK_s: case SDLK_d: case SDLK_f:
+                            case SDLK_g: case SDLK_h: case SDLK_j: case SDLK_k:
+                            case SDLK_l:         JoyState &= ~BTN_FIREA; break;
+                            case SDLK_z: case SDLK_x: case SDLK_c: case SDLK_v:
+                            case SDLK_b: case SDLK_n: case SDLK_m:
+                                                 JoyState &= ~BTN_FIREB; break;
+                            case SDLK_q: case SDLK_e: case SDLK_t:
+                            case SDLK_u: case SDLK_o:
+                                                 JoyState &= ~BTN_FIREL; break;
+                            case SDLK_w: case SDLK_r: case SDLK_y:
+                            case SDLK_i: case SDLK_p:
+                                                 JoyState &= ~BTN_FIRER; break;
+                            case SDLK_RETURN:    JoyState &= ~BTN_START; break;
+                            case SDLK_TAB:       JoyState &= ~BTN_SELECT; break;
+                            case SDLK_ESCAPE:    JoyState &= ~BTN_EXIT; break;
+                        }
+                    }
                     if (KeyHandler) KeyHandler(Key);
                 }
             }
