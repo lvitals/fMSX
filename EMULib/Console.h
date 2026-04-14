@@ -131,7 +131,7 @@ int CONMenu(int X,int Y,int W,int H,pixel FGColor,pixel BGColor,const char *Item
 /** CONFile() ************************************************/
 /** Show a file selector.                                   **/
 /*************************************************************/
-const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext);
+const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext,int SaveMode);
 
 #ifdef __cplusplus
 }

@@ -364,15 +364,15 @@ int CONMenu(int X,int Y,int W,int H,pixel FGColor,pixel BGColor,const char *Item
 /** CONFile() ************************************************/
 /** Show a file selector.                                   **/
 /*************************************************************/
-const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
+const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext,int SaveMode)
 {
   if(VideoImg)
     switch(VideoImg->D)
     {
-      case 8:  return(CONFile_8(FGColor,BGColor,Ext));
-      case 16: return(CONFile_16(FGColor,BGColor,Ext));
+      case 8:  return(CONFile_8(FGColor,BGColor,Ext,SaveMode));
+      case 16: return(CONFile_16(FGColor,BGColor,Ext,SaveMode));
       case 24:
-      case 32: return(CONFile_32(FGColor,BGColor,Ext));
+      case 32: return(CONFile_32(FGColor,BGColor,Ext,SaveMode));
     }
 
   return(0);

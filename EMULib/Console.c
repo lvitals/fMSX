@@ -440,7 +440,11 @@ static int CompareEntries(const void *A,const void *B)
   const char *S1 = *(const char **)A;
   const char *S2 = *(const char **)B;
 
-  /* ".." always comes first */
+  /* "." always comes first */
+  if(!strcmp(S1+1,".")) return(-1);
+  if(!strcmp(S2+1,".")) return(1);
+
+  /* ".." comes next */
   if(!strcmp(S1+1,"..")) return(-1);
   if(!strcmp(S2+1,"..")) return(1);
 
@@ -1119,7 +1123,7 @@ int CONMenu(int X,int Y,int W,int H,pixel FGColor,pixel BGColor,const char *Item
   return(P? P-Result:0);
 }
 
-const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
+const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext,int SaveMode)
 {
   struct dirent *DP;
   struct stat ST;
@@ -1165,8 +1169,8 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
 
     /* Compute required buffer size and entry count */
     for(rewinddir(D),I=256,Count=0;(DP=readdir(D));)
-      if(strcmp(DP->d_name,"."))
-        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,".."))
+      if(strcmp(DP->d_name,".") || SaveMode)
+        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,"..") || !strcmp(DP->d_name,"."))
         {
           I += strlen(DP->d_name)+2;
           Count++;
@@ -1193,8 +1197,8 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
 
     /* Collect entries */
     for(rewinddir(D),Count=0;(DP=readdir(D));)
-      if(strcmp(DP->d_name,"."))
-        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,".."))
+      if(strcmp(DP->d_name,".") || SaveMode)
+        if(ShowHidden || (DP->d_name[0]!='.') || !strcmp(DP->d_name,"..") || !strcmp(DP->d_name,"."))
         {
           I=strlen(DP->d_name)+1;
           /* Construct full path for stat() */
@@ -1209,7 +1213,7 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
               Entries[Count++]=T;
             }
           }
-          else
+          else if(!SaveMode)
           {
             for(P=Ext;*P;P+=strlen(P)+1)
               if((I>strlen(P))&&!stricmp(DP->d_name+I-1-strlen(P),P))
@@ -1272,6 +1276,26 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
             {
               if(S==LastDir) S[1]='\0'; /* Keep leading slash */
               else S[0]='\0';
+            }
+          }
+          else if(SaveMode && !strcmp(P+1,"."))
+          {
+            /* Prompt for a filename */
+            Result[0] = '\0';
+            if(CONInput(-1,-1,FGColor,BGColor,"Enter Filename:",Result,sizeof(Result)-1))
+            {
+              /* If filename entered, prepend current directory and return */
+              char NewPath[2048];
+              int Len = strlen(LastDir);
+              strncpy(NewPath,LastDir,sizeof(NewPath)-1);
+              NewPath[sizeof(NewPath)-1] = '\0';
+              if(Len && (LastDir[Len-1]!='/' && LastDir[Len-1]!='\\'))
+                strncat(NewPath,"/",sizeof(NewPath)-strlen(NewPath)-1);
+              strncat(NewPath,Result,sizeof(NewPath)-strlen(NewPath)-1);
+              strcpy(Result,NewPath);
+              if(Buf) free(Buf);
+              if(Entries) free(Entries);
+              return(Result);
             }
           }
           else

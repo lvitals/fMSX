@@ -160,7 +160,7 @@ void MenuMSX(void)
       case 1: /* Load cartridge, disk image, state, or font */
         /* Request file name */
         RedrawMain(MainS,J);
-        P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0.dsk\0.dsk.gz\0.sta\0.sta.gz\0.cas\0.fnt\0.fnt.gz\0.cht\0.pal\0");
+        P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0.dsk\0.dsk.gz\0.sta\0.sta.gz\0.cas\0.fnt\0.fnt.gz\0.cht\0.pal\0",0);
         /* Try loading file, show error on failure */
         if(P)
         {
@@ -185,7 +185,7 @@ void MenuMSX(void)
           case 1: /* Save state */
             /* Request file name */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK2,".sta\0");
+            P=CONFile(CLR_TEXT,CLR_BACK2,".sta\0",1);
             /* Try saving state, show error on failure */
             if(P&&!SaveSTA(P))
             {
@@ -196,14 +196,14 @@ void MenuMSX(void)
           case 2: /* Printer output file */
             /* Request file name */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK2,".prn\0.out\0.txt\0");
+            P=CONFile(CLR_TEXT,CLR_BACK2,".prn\0.out\0.txt\0",1);
             /* Try changing printer output */
             if(P) ChangePrinter(P);
             break;
           case 3: /* Soundtrack output file */
             /* Request file name */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK2,".mid\0.rmi\0");
+            P=CONFile(CLR_TEXT,CLR_BACK2,".mid\0.rmi\0",1);
             if(P)
             {
               /* Try changing MIDI log output, show error on failure */
@@ -403,7 +403,7 @@ void MenuMSX(void)
             case 1:
               /* Request file name */
               RedrawMain(MainS,J);
-              P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0");
+              P=CONFile(CLR_TEXT,CLR_BACK3,".rom\0.rom.gz\0.mx1\0.mx1.gz\0.mx2\0.mx2.gz\0",0);
               /* Try loading file, show error on failure */
               if(P&&!LoadCart(P,N,ROMGUESS(N)|ROMTYPE(N)))
               {
@@ -467,7 +467,7 @@ void MenuMSX(void)
         {
           case 1: /* Load disk */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK3,".dsk\0.dsk.gz\0.fdi\0.fdi.gz\0");
+            P=CONFile(CLR_TEXT,CLR_BACK3,".dsk\0.dsk.gz\0.fdi\0.fdi.gz\0",0);
             if(P&&!ChangeDisk(N,P))
             {
               RedrawMain(MainS,J);
@@ -482,7 +482,7 @@ void MenuMSX(void)
             break;
           case 5: /* Save .DSK image */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK2,".dsk\0");
+            P=CONFile(CLR_TEXT,CLR_BACK2,".dsk\0",1);
             if(P&&!SaveFDI(&FDD[N],P,FMT_MSXDSK))
             {
               RedrawMain(MainS,J);
@@ -491,7 +491,7 @@ void MenuMSX(void)
             break;
           case 6: /* Save .FDI image */
             RedrawMain(MainS,J);
-            P=CONFile(CLR_TEXT,CLR_BACK2,".fdi\0");
+            P=CONFile(CLR_TEXT,CLR_BACK2,".fdi\0",1);
             if(P&&!SaveFDI(&FDD[N],P,FMT_FDI))
             {
               RedrawMain(MainS,J);
