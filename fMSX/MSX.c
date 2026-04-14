@@ -691,10 +691,14 @@ void UpdateTimings(void)
 {
   int NewSyncFreq;
 
+  /* Force VDP[9] bit 1 to match the current Mode preference (NTSC=0, PAL=1) */
   if(VIDEO(MSX_PAL)) VDP[9]|=0x02; else VDP[9]&=~0x02;
+
+  /* Calculate VPeriod and SyncFreq based on the forced mode */
   VPeriod     = (VIDEO(MSX_PAL)? VPERIOD_PAL:VPERIOD_NTSC)/6;
   NewSyncFreq = VIDEO(MSX_PAL)? 50:60;
 
+  /* Only reset timer if the frequency actually changed */
   if(SyncFreq != NewSyncFreq)
   {
     SyncFreq = NewSyncFreq;
@@ -1971,7 +1975,7 @@ void VDPOut(register byte R,register byte V)
                VDP[9] = V;
                UpdateTimings();
              }
-             break;
+             return;
     case 10: V&=0x07;
              ColTab=VRAM+((int)(VDP[3]&MSK[ScrMode].R3)<<6)+((int)V<<14);
              break;
