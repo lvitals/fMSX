@@ -90,6 +90,8 @@ static int Effects = EFF_SCALE | EFF_SAVECPU;
 static char FPSString[32] = "";
 static Uint32 LastFPSTime = 0;
 static int FrameCount = 0;
+static Uint32 LastMouseTicks = 0;
+static int CursorVisible = 0;
 
 extern int SyncFreq;
 
@@ -228,6 +230,9 @@ int InitUnix(const char *Title, int Width, int Height) {
     signal(SIGINT, SigHandler);
     signal(SIGTERM, SigHandler);
 
+    LastMouseTicks = SDL_GetTicks();
+    SDL_ShowCursor(SDL_DISABLE);
+
     return 1;
 }
 
@@ -258,6 +263,14 @@ static void HandleSDLEvent(SDL_Event *Event) {
     switch (Event->type) {
         case SDL_QUIT:
             ExitNow = 1;
+            break;
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+            LastMouseTicks = SDL_GetTicks();
+            if (!CursorVisible) {
+                SDL_ShowCursor(SDL_ENABLE);
+                CursorVisible = 1;
+            }
             break;
         case SDL_KEYDOWN:
         case SDL_KEYUP:
@@ -567,6 +580,12 @@ int ShowVideo(void) {
         if (FPSString[0]) {
             ShadowPrintXY(VideoImg, FPSString, VideoX + VideoW - strlen(FPSString) * 8 - 8, VideoY + VideoH - 16, PIXEL(255, 255, 255), PIXEL(0, 0, 0));
         }
+    }
+
+    /* Hide cursor if not moved for 2.5 seconds */
+    if (CursorVisible && (SDL_GetTicks() - LastMouseTicks > 2500)) {
+        SDL_ShowCursor(SDL_DISABLE);
+        CursorVisible = 0;
     }
 
     SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
