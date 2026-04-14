@@ -53,14 +53,14 @@ void MenuMSX(void)
 {
   const char *P;
   char S[512],*T,*PP;
-  int I,J,K,N,V,M;
+  int I,J,K,N,V,M,L;
 
   /* Display and activate top menu */
   for(J=1;J;)
   {
     /* Redraw background */
     if(RefreshLine[ScrMode])
-      for(I=0;I<(ScanLines212? 212:192);++I) RefreshLine[ScrMode](I);
+      for(L=0;L<(ScanLines212? 212:192);++L) RefreshLine[ScrMode](L);
 
     /* Compose menu */
     sprintf(S,
@@ -96,7 +96,7 @@ void MenuMSX(void)
     );
 
     /* Replace all EOLNs with zeroes */
-    for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+    for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
     /* Run menu */
     K=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK,S,J);
     /* Exit top menu on ESC */
@@ -181,7 +181,7 @@ void MenuMSX(void)
             VRAMPages*16
           );
           /* Replace all EOLNs with zeroes */
-          for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+          for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
           /* Run menu */
           V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
           /* Exit submenu on ESC */
@@ -237,7 +237,7 @@ void MenuMSX(void)
             OPTION(MSX_AUTOFIREB)?    CON_CHECK:' '
           );
           /* Replace all EOLNs with zeroes */
-          for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+          for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
           /* Run menu */
           V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
           /* Exit submenu on ESC */
@@ -273,7 +273,7 @@ void MenuMSX(void)
           MemMap[2][0][2]!=EmptyRAM? CON_FILE:' '
         );
         /* Replace all EOLNs with zeroes */
-        for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+        for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
         /* Get cartridge slot number */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         /* Exit to top menu if cancelled or ESC */
@@ -310,7 +310,7 @@ void MenuMSX(void)
             ROMTYPE(N)==MAP_FMPAC?    CON_CHECK:' '
           );
           /* Replace all EOLNs with zeroes */
-          for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+          for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
           /* Run menu */
           V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,K);
           /* Exit submenu on ESC */
@@ -354,7 +354,7 @@ void MenuMSX(void)
           FDD[1].Data? CON_FILE:' '
         );
         /* Replace all EOLNs with zeroes */
-        for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+        for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
         /* Get disk drive number */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         /* Exit to top menu if cancelled or ESC */
@@ -371,7 +371,7 @@ void MenuMSX(void)
           'A'+N
         );
         /* Replace all EOLNs with zeroes */
-        for(I=0;S[I];I++) if(S[I]=='\n') S[I]='\0';
+        for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
         /* Run menu and handle menu selection */
         V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK4,S,1);
         if(V<0) break;
@@ -421,12 +421,12 @@ void MenuMSX(void)
             K? CON_CHECK:' '
           );
           T=PP+strlen(PP);
-          for(J=0;J<CheatCount;++J)
-          { strcpy(T,(const char *)CheatCodes[J].Text);T+=strlen(T);*T++='\n'; }
+          for(L=0;L<CheatCount;++L)
+          { strcpy(T,(const char *)CheatCodes[L].Text);T+=strlen(T);*T++='\n'; }
           *T='\0';
 
           /* Replace all EOLNs with zeroes */
-          for(J=0;PP[J];J++) if(PP[J]=='\n') PP[J]='\0';
+          for(L=0;PP[L];L++) if(PP[L]=='\n') PP[L]='\0';
           /* Run menu */
           V=CONMenu(-1,-1,16,24,CLR_TEXT,CLR_BACK4,PP,I);
           /* Exit submenu on ESC */
@@ -450,7 +450,7 @@ void MenuMSX(void)
               /* No cheats above this line */
               if(I<5) break;
               /* Find cheat */
-              for(T=PP,J=0;*T&&(J<I);++J) T+=strlen(T)+1;
+              for(T=PP,L=0;*T&&(L<I);++L) T+=strlen(T)+1;
               /* Delete cheat */
               if(T) DelCheat(T);
               break;
@@ -478,7 +478,7 @@ void MenuMSX(void)
           );
 
           /* Replace all EOLNs with zeroes */
-          for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
+          for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
 
           /* Run menu */
           V=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK5,S,I);
@@ -535,7 +535,7 @@ void MenuMSX(void)
                 );
 
                 /* Replace all EOLNs with zeroes */
-                for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
+                for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
 
                 /* Run menu */
                 N=CONMenu(-1,-1,-1,-1,CLR_TEXT,CLR_BACK2,S,I);
@@ -563,11 +563,11 @@ void MenuMSX(void)
                   case 10: M=(M&~HUNT_MASK_CHANGE)|HUNT_MINUSMANY;break;
                   case 12:
                     /* Search for value RAM */
-                    J = AddHUNT(0xC000,0x4000,K,V,M);
+                    L = AddHUNT(0xC000,0x4000,K,V,M);
                     I = 0;
                     /* Show number of found locations */
-                    sprintf(S,"Found %d locations.\n",J);
-                    for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
+                    sprintf(S,"Found %d locations.\n",L);
+                    for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
                     CONMsg(-1,-1,-1,-1,CLR_WHITE,CLR_INFO,"Initial Search",S);
                     break;
                 }
@@ -595,19 +595,19 @@ void MenuMSX(void)
               {
                 /* Compose dialog */
                 sprintf(S,"Found %d Cheats\n",K);
-                for(J=0;(J<K)&&(strlen(S)<sizeof(S)-64);++J)
+                for(L=0;(L<K)&&(strlen(S)<sizeof(S)-64);++L)
                 {
-                  if(!(PP=(char *)HUNT2Cheat(J,HUNT_MSX))) break;
+                  if(!(PP=(char *)HUNT2Cheat(L,HUNT_MSX))) break;
                   if(strlen(PP)>9) { PP[8]=CON_DOTS;PP[9]='\0'; }
-                  sprintf(S+strlen(S),"%-9s %c\n",PP,M&(1<<J)? CON_CHECK:' ');
+                  sprintf(S+strlen(S),"%-9s %c\n",PP,M&(1<<L)? CON_CHECK:' ');
                 }
                 strcat(S,"  \nAdd cheats\n");
      
                 /* Number of shown locations */
-                K=J;
+                K=L;
      
                 /* Replace all EOLNs with zeroes */
-                for(J=0;S[J];J++) if(S[J]=='\n') S[J]='\0';
+                for(L=0;S[L];L++) if(S[L]=='\n') S[L]='\0';
      
                 /* Run menu */
                 N=CONMenu(-1,-1,-1,16,CLR_TEXT,CLR_BACK2,S,I);
@@ -632,8 +632,8 @@ void MenuMSX(void)
                   ResetCheats();
 
                   /* Add found cheats */
-                  for(J=0;J<K;++J)
-                    if((M&(1<<J))&&(P=(char *)HUNT2Cheat(J,HUNT_MSX)))
+                  for(L=0;L<K;++L)
+                    if((M&(1<<L))&&(P=(char *)HUNT2Cheat(L,HUNT_MSX)))
                       for(T=0;P;P=T)
                       {
                         T=(char *)strchr(P,';');

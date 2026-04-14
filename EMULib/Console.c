@@ -939,13 +939,35 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
     /* SPACE, ENTER, TAB treated as "OK" */
     if(((J==' ')&&!FileSelect)||(J==0x0A)||(J==0x0D)) J=CON_OK;
 
-    /* ESCAPE treated as "BACK" */
-    if(J==0x1B) J=CON_BACK;
+    /* ESCAPE or CON_EXIT treated as "BACK" */
+    if((J==0x1B)||(J==CON_EXIT)) J=CON_BACK;
     /* BS treated as "BACK" if not filtering or filter already empty */
     if((J==0x08)&&(!FileSelect||(FilterLen<=0))) J=CON_BACK;
 
     /* Erase arrow */
     CONChar(X+1,Y+2+Item,' ');
+
+    /* If BACK requested, check for "Done" item */
+    if(J==CON_BACK)
+    {
+      int DoneItem = -1;
+      /* Find "Done" item */
+      for(K=Total-1;K>=0;--K)
+      {
+        const char *S = nth(Items,K+1);
+        if(S && !strcmp(S,"Done")) { DoneItem=K;break; }
+      }
+
+      /* If "Done" found and not currently selected, move selection to it */
+      if((DoneItem>=0) && (Top+Item != DoneItem))
+      {
+        Item = DoneItem;
+        Top  = Item-Item%(H-3);
+        Item = Item%(H-3);
+        Draw = 1;
+        J    = 0; /* Consume key to stay in menu */
+      }
+    }
 
     /* Handle Backspace to shorten filter */
     if(FileSelect&&(J==0x08)&&(FilterLen>0))
