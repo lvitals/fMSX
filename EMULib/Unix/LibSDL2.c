@@ -127,10 +127,10 @@ static unsigned int SDLToKeysym(SDL_Keycode Key) {
         case SDLK_RALT:      return XK_Alt_R;
         case SDLK_CAPSLOCK:  return XK_Caps_Lock;
         case SDLK_INSERT:    return CON_INSERT;
-        case SDLK_HOME:      return XK_Home;
-        case SDLK_END:       return XK_End;
-        case SDLK_PAGEUP:    return XK_Page_Up;
-        case SDLK_PAGEDOWN:  return XK_Page_Down;
+        case SDLK_HOME:      return CON_HOME;
+        case SDLK_END:       return CON_END;
+        case SDLK_PAGEUP:    return CON_PAGEUP;
+        case SDLK_PAGEDOWN:  return CON_PAGEDOWN;
         case SDLK_KP_0:      return XK_KP_0;
         case SDLK_KP_1:      return XK_KP_1;
         case SDLK_KP_2:      return XK_KP_2;

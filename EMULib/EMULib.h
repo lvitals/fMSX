@@ -108,6 +108,11 @@ extern void (*KeyHandler)(unsigned int Key);
 #define CON_ALT      0x40000000 /* ALT held                  */
 #define CON_RELEASE  0x80000000 /* Key released (going up)   */
 
+#define CON_HOME     0xE0
+#define CON_END      0xE1
+#define CON_PAGEUP   0xE2
+#define CON_PAGEDOWN 0xE3
+
 #define CON_F1       0xEE
 #define CON_F2       0xEF
 #define CON_F3       0xF0

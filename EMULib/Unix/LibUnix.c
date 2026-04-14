@@ -672,6 +672,8 @@ int ProcessEvents(int Wait)
           case XK_Tab:          JoyState|=BTN_SELECT;break;
           case XK_Return:       JoyState|=BTN_START;LastKey=CON_OK;break;
           case XK_BackSpace:    LastKey=8;break;
+          case XK_Home:         LastKey=CON_HOME;break;
+          case XK_End:          LastKey=CON_END;break;
 
           case XK_Caps_Lock:
             if(!XkbGetIndicatorState(Dsp,XkbUseCoreKbd,&I))
@@ -697,6 +699,7 @@ int ProcessEvents(int Wait)
               /* Key swallowed */
               J=0;
             }
+            else LastKey=CON_PAGEUP;
             break;
 
           case XK_Page_Down:
@@ -707,6 +710,7 @@ int ProcessEvents(int Wait)
               /* Key swallowed */
               J=0;
             }
+            else LastKey=CON_PAGEDOWN;
             break;
         }
 

@@ -949,6 +949,37 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
         else { Top=0;Item=0; }
       }
     }
+
+    if(J==CON_PAGEUP)
+    {
+      Draw=1;
+      Top -= H-3;
+      if(Top<0) { Top=0;Item=0; }
+    }
+
+    if(J==CON_PAGEDOWN)
+    {
+      Draw=1;
+      Top += H-3;
+      if(Top+H-3>Total)
+      {
+        Top=Total>(H-3)? Total-H+3:0;
+        Item=Total-Top>0? Total-Top-1:0;
+      }
+    }
+
+    if(J==CON_HOME)
+    {
+      Draw=1;
+      Top=Item=0;
+    }
+
+    if(J==CON_END)
+    {
+      Draw=1;
+      Top=Total>(H-3)? Total-H+3:0;
+      Item=Total-Top>0? Total-Top-1:0;
+    }
   }
   while((J!=CON_OK)&&(J!=CON_EXIT));
 
