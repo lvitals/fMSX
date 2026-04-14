@@ -418,6 +418,23 @@ void CONSetFont(const unsigned char *Font)
           : Font;
 }
 
+static int CompareEntries(const void *A,const void *B)
+{
+  const char *S1 = *(const char **)A;
+  const char *S2 = *(const char **)B;
+
+  /* ".." always comes first */
+  if(!strcmp(S1+1,"..")) return(-1);
+  if(!strcmp(S2+1,"..")) return(1);
+
+  /* Folders come before files */
+  if((*S1==CON_FOLDER)&&(*S2!=CON_FOLDER)) return(-1);
+  if((*S1!=CON_FOLDER)&&(*S2==CON_FOLDER)) return(1);
+
+  /* Otherwise, sort alphabetically */
+  return(stricmp(S1+1,S2+1));
+}
+
 #endif /* DEFINE_ONCE */
 
 void CONSetColor(pixel FGColor,pixel BGColor)
@@ -950,16 +967,18 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
 {
   struct dirent *DP;
   struct stat ST;
-  int I,J,BufSize;
+  int I,J,BufSize,Count,MaxCount;
   const char *P;
-  char *Buf,*T;
+  char *Buf,*T,**Entries;
   DIR *D;
 
   if(!VideoImg) return(0);
 
   /* No buffer yet */
-  Buf     = 0;
-  BufSize = 0;
+  Buf      = 0;
+  BufSize  = 0;
+  Entries  = 0;
+  MaxCount = 0;
 
   do
   {
@@ -981,8 +1000,13 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
     if(!(D=opendir("."))) break;
 #endif
 
-    /* Compute required buffer size size */
-    for(rewinddir(D),I=256;(DP=readdir(D));I+=strlen(DP->d_name)+2);
+    /* Compute required buffer size and entry count */
+    for(rewinddir(D),I=256,Count=0;(DP=readdir(D));)
+      if(strcmp(DP->d_name,"."))
+      {
+        I += strlen(DP->d_name)+2;
+        Count++;
+      }
 
     /* Reallocate buffer if needed */
     if((I>BufSize)&&(T=malloc(I)))
@@ -992,47 +1016,71 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
       Buf     = T;
     }
 
-    /* If failed to allocate buffer, drop out */
-    if(!Buf) { closedir(D);return(0); }
+    /* Reallocate entries array if needed */
+    if((Count>MaxCount)&&(T=malloc(Count*sizeof(char *))))
+    {
+      if(Entries) free(Entries);
+      MaxCount = Count;
+      Entries  = (char **)T;
+    }
+
+    /* If failed to allocate buffers, drop out */
+    if(!Buf || !Entries) { if(Buf) free(Buf); if(Entries) free(Entries); closedir(D); return(0); }
+
+    /* Collect entries */
+    for(rewinddir(D),Count=0;(DP=readdir(D));)
+      if(strcmp(DP->d_name,"."))
+      {
+        I=strlen(DP->d_name)+1;
+        if(!stat(DP->d_name,&ST)&&S_ISDIR(ST.st_mode))
+        {
+          if((T=malloc(I+1)))
+          {
+            T[0]=CON_FOLDER;
+            strcpy(T+1,DP->d_name);
+            Entries[Count++]=T;
+          }
+        }
+        else
+        {
+          for(P=Ext;*P;P+=strlen(P)+1)
+            if((I>strlen(P))&&!stricmp(DP->d_name+I-1-strlen(P),P))
+            {
+              if((T=malloc(I+1)))
+              {
+                T[0]=CON_FILE;
+                strcpy(T+1,DP->d_name);
+                Entries[Count++]=T;
+              }
+              break;
+            }
+        }
+      }
+
+    /* Done with directory */
+    closedir(D);
+
+    /* Sort entries */
+    if(Count>1) qsort(Entries,Count,sizeof(char *),CompareEntries);
 
     /* Create title from the current pathname */
     if(!getcwd(Buf,BufSize-2)) strcpy(Buf,"Choose File");
     J=strlen(Buf)+1;
 
-    /* Scan subdirectories */
-    for(rewinddir(D);(DP=readdir(D));)
-      if(!stat(DP->d_name,&ST)&&S_ISDIR(ST.st_mode))
+    /* Copy sorted entries to Buf */
+    for(I=0;I<Count;I++)
+    {
+      size_t Len = strlen(Entries[I])+1;
+      if(J+Len<BufSize)
       {
-        I=strlen(DP->d_name)+1;
-        if(J+I+1<BufSize)
-        {
-          Buf[J++]=CON_FOLDER;
-          strcpy(Buf+J,DP->d_name);
-          J+=I;
-        }
+        memcpy(Buf+J,Entries[I],Len);
+        J+=Len;
       }
-
-    /* Scan files */
-    for(rewinddir(D);(DP=readdir(D));)
-      if(!stat(DP->d_name,&ST)&&!S_ISDIR(ST.st_mode))
-      {
-        I=strlen(DP->d_name)+1;
-        if(J+I+1<BufSize)
-          for(P=Ext;*P;P+=strlen(P)+1)
-            if((I>strlen(P))&&!stricmp(DP->d_name+I-1-strlen(P),P))
-            {
-              Buf[J++]=CON_FILE;
-              strcpy(Buf+J,DP->d_name);
-              J+=I;
-              break;
-            }
-      }
+      free(Entries[I]);
+    }
 
     /* Terminate directory listing */
     Buf[J]='\0';
-
-    /* Done with directory */
-    closedir(D);
 
     /* Show menu */
     P=CONSelector(-1,-1,(VideoW>>3)-2,(VideoH>>3)-2,FGColor,BGColor,Buf,TAG_SELEFILE);
@@ -1056,17 +1104,20 @@ const char *CONFile(pixel FGColor,pixel BGColor,const char *Ext)
           /* File selected, return it */
           strncpy(Result,P+1,sizeof(Result));
           Result[sizeof(Result)-1]='\0';
-          free(Buf);
+          if(Buf) free(Buf);
+          if(Entries) free(Entries);
           return(Result);
         default:
           /* Filename entered into Result[] */
-          free(Buf);
+          if(Buf) free(Buf);
+          if(Entries) free(Entries);
           return(Result);
       }
   }
   while(P);
 
-  free(Buf);
+  if(Buf) free(Buf);
+  if(Entries) free(Entries);
   return(0);
 }
 
