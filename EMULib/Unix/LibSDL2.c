@@ -67,6 +67,9 @@
 #define XK_KP_9      0xffb9
 #define XK_KP_Enter  0xff8d
 
+#define MSX_AUTOFIREA 0x01000000
+#define MSX_AUTOFIREB 0x02000000
+
 extern int MasterSwitch;
 extern int MasterVolume;
 extern int ExitNow;
@@ -344,24 +347,41 @@ static void HandleSDLEvent(SDL_Event *Event) {
             {
                 int Pressed = (Event->type == SDL_CONTROLLERBUTTONDOWN);
                 unsigned int Mask = 0;
+                unsigned int Key = 0;
+
                 switch (Event->cbutton.button) {
                     case SDL_CONTROLLER_BUTTON_DPAD_UP:    Mask = BTN_UP; break;
                     case SDL_CONTROLLER_BUTTON_DPAD_DOWN:  Mask = BTN_DOWN; break;
                     case SDL_CONTROLLER_BUTTON_DPAD_LEFT:  Mask = BTN_LEFT; break;
                     case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: Mask = BTN_RIGHT; break;
-                    case SDL_CONTROLLER_BUTTON_A:
-                    case SDL_CONTROLLER_BUTTON_B:          Mask = BTN_FIREA; break;
-                    case SDL_CONTROLLER_BUTTON_X:
-                    case SDL_CONTROLLER_BUTTON_Y:          Mask = BTN_FIREB; break;
+                    
+                    /* A (Right) = Fire 1, B (Bottom) = Fire 2 */
+                    case SDL_CONTROLLER_BUTTON_A:          Mask = BTN_FIREA; break;
+                    case SDL_CONTROLLER_BUTTON_B:          Mask = BTN_FIREB; break;
+                    
+                    /* X (Top) = F4, Y (Left) = F3 */
+                    case SDL_CONTROLLER_BUTTON_X:          Key = CON_F4; break;
+                    case SDL_CONTROLLER_BUTTON_Y:          Key = CON_F3; break;
+                    
+                    /* Shoulder buttons for 6-button support (L/R and X/Y bits) */
                     case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:  Mask = BTN_FIREL; break;
                     case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: Mask = BTN_FIRER; break;
-                    case SDL_CONTROLLER_BUTTON_START:      Mask = BTN_START; break;
-                    case SDL_CONTROLLER_BUTTON_BACK:       Mask = BTN_SELECT; break;
+                    case SDL_CONTROLLER_BUTTON_LEFTSTICK:     Mask = BTN_FIREX; break; /* Mapping L2/R2 equivalent */
+                    case SDL_CONTROLLER_BUTTON_RIGHTSTICK:    Mask = BTN_FIREY; break;
+                    
+                    /* Start = F1, Select = F2 */
+                    case SDL_CONTROLLER_BUTTON_START:      Key = CON_F1; break;
+                    case SDL_CONTROLLER_BUTTON_BACK:       Key = CON_F2; break;
                 }
                 
                 if (Mask) {
                     if (Event->cbutton.which > 0) Mask <<= 16;
                     if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                }
+                
+                if (Key && KeyHandler) {
+                    if (!Pressed) Key |= CON_RELEASE;
+                    KeyHandler(Key);
                 }
             }
             break;
