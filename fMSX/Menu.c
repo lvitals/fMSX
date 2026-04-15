@@ -519,6 +519,7 @@ void MenuMSX(void)
             "Cheat Codes\n"
             "Enabled     %c\n"
             "New cheat\n"
+            " \n"
             "Done\n"
             " \n",
             K? CON_CHECK:' '
@@ -546,12 +547,12 @@ void MenuMSX(void)
               T=CONInput(-1,-1,CLR_TEXT,CLR_BACK2,"New cheat:",S,14);
               if(T) AddCheat(T);
               break;
-            case 3:
+            case 4:
               I=0;
               break;
             default:
               /* No cheats above this line */
-              if(I<5) break;
+              if(I<6) break;
               /* Find cheat */
               for(T=PP,L=0;*T&&(L<I);++L) T+=strlen(T)+1;
               /* Delete cheat */

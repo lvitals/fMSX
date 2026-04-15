@@ -70,10 +70,15 @@
 #define MSX_AUTOFIREA 0x01000000
 #define MSX_AUTOFIREB 0x02000000
 
+#define JOY_NONE      0
+#define JOY_STICK     1
+#define SETJOYTYPE(N,T) Mode=(Mode&~(0x030<<(2*(N))))|((T)<<(4+2*(N)))
+
 extern int MasterSwitch;
 extern int MasterVolume;
 extern int ExitNow;
 extern unsigned char Verbose;
+extern unsigned int Mode;
 
 static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
@@ -205,28 +210,18 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDL_RenderPresent(Renderer);
 
     /* Open available game controllers or joysticks */
-    int ControllerIdx = 0;
     int NumJoysticks = SDL_NumJoysticks();
     if (NumJoysticks > 0) printf("SDL: Found %d joystick(s)\n", NumJoysticks);
 
-    for (int i = 0; i < NumJoysticks && ControllerIdx < 2; ++i) {
-        if (SDL_IsGameController(i)) {
-            Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
-            if (Controllers[ControllerIdx]) {
-                printf("SDL: Opened GameController %d: %s\n", ControllerIdx, SDL_GameControllerName(Controllers[ControllerIdx]));
-                ControllerIdx++;
-            }
-        } else {
-            /* Fallback to generic joystick if no GameController mapping exists */
-            SDL_Joystick *Joy = SDL_JoystickOpen(i);
-            if (Joy) {
-                printf("SDL: Opened generic Joystick %d: %s\n", ControllerIdx, SDL_JoystickName(Joy));
-                /* We still want to use it, but generic joysticks need different handling. 
-                   For now, we just log it. In a full implementation, we'd add SDL_JOYBUTTONDOWN etc. */
-                SDL_JoystickClose(Joy);
-                /* Try to force it as a GameController anyway if it has enough buttons */
-                Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
-                if (Controllers[ControllerIdx]) ControllerIdx++;
+    for (int i = 0; i < NumJoysticks; ++i) {
+        for (int j = 0; j < 2; ++j) {
+            if (!Controllers[j]) {
+                Controllers[j] = SDL_GameControllerOpen(i);
+                if (Controllers[j]) {
+                    SETJOYTYPE(j, JOY_STICK);
+                    printf("SDL: Opened GameController %d: %s (Attached to MSX Port %c)\n", j, SDL_GameControllerName(Controllers[j]), 'A' + j);
+                    break;
+                }
             }
         }
     }
@@ -497,13 +492,25 @@ static void HandleSDLEvent(SDL_Event *Event) {
             break;
 
         case SDL_CONTROLLERDEVICEADDED:
+        case SDL_JOYDEVICEADDED:
             {
-                int i = Event->cdevice.which;
-                if (SDL_IsGameController(i)) {
-                    for (int j = 0; j < 2; ++j) {
-                        if (!Controllers[j]) {
-                            Controllers[j] = SDL_GameControllerOpen(i);
-                            if (Verbose) printf("SDL: Controller %d connected: %s\n", j, SDL_GameControllerName(Controllers[j]));
+                int i = (Event->type == SDL_CONTROLLERDEVICEADDED) ? Event->cdevice.which : Event->jdevice.which;
+                SDL_JoystickID InstanceID = SDL_JoystickGetDeviceInstanceID(i);
+                int Found = 0;
+                for (int j = 0; j < 2; j++) {
+                    if (Controllers[j]) {
+                        SDL_Joystick *Joy = SDL_GameControllerGetJoystick(Controllers[j]);
+                        if (Joy && SDL_JoystickInstanceID(Joy) == InstanceID) { Found = 1; break; }
+                    }
+                }
+                if (Found) break;
+
+                for (int j = 0; j < 2; ++j) {
+                    if (!Controllers[j]) {
+                        Controllers[j] = SDL_GameControllerOpen(i);
+                        if (Controllers[j]) {
+                            SETJOYTYPE(j, JOY_STICK);
+                            if (Verbose) printf("SDL: Controller %d connected: %s (Attached to MSX Port %c)\n", j, SDL_GameControllerName(Controllers[j]), 'A' + j);
                             break;
                         }
                     }
@@ -512,14 +519,17 @@ static void HandleSDLEvent(SDL_Event *Event) {
             break;
 
         case SDL_CONTROLLERDEVICEREMOVED:
+        case SDL_JOYDEVICEREMOVED:
             {
-                SDL_GameController *C = SDL_GameControllerFromInstanceID(Event->cdevice.which);
-                if (C) {
-                    for (int j = 0; j < 2; ++j) {
-                        if (Controllers[j] == C) {
+                SDL_JoystickID InstanceID = (Event->type == SDL_CONTROLLERDEVICEREMOVED) ? Event->cdevice.which : Event->jdevice.which;
+                for (int j = 0; j < 2; ++j) {
+                    if (Controllers[j]) {
+                        SDL_Joystick *Joy = SDL_GameControllerGetJoystick(Controllers[j]);
+                        if (Joy && SDL_JoystickInstanceID(Joy) == InstanceID) {
                             if (Verbose) printf("SDL: Controller %d disconnected\n", j);
-                            SDL_GameControllerClose(C);
+                            SDL_GameControllerClose(Controllers[j]);
                             Controllers[j] = NULL;
+                            SETJOYTYPE(j, JOY_NONE);
                             /* Clear joystick state for this port */
                             if (j == 0) JoyState &= ~BTN_ALL;
                             else JoyState &= ~((unsigned int)BTN_ALL << 16);
