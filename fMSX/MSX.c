@@ -959,13 +959,12 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   for(J=0;J<MAXSLOTS;++J)
     if((I=ROMMask[J]+1)>4)
     {
-      /* Default to first four pages */
-      SetMegaROM(J,0,1,2,3);
-
-      /* Some MegaROMs default to last pages on reset */
-      if((ROMData[J][0]!='A')||(ROMData[J][1]!='B'))
-        if((ROMData[J][(I-2)<<13]=='A')&&(ROMData[J][((I-2)<<13)+1]=='B'))
-          SetMegaROM(J,I-2,I-1,I-2,I-1);
+      /* Check for 'AB' signature at the end */
+      if((ROMData[J][(I-2)<<13]=='A')&&(ROMData[J][((I-2)<<13)+1]=='B'))
+        SetMegaROM(J,I-2,I-1,I-2,I-1);
+      /* Otherwise, default to first four pages */
+      else
+        SetMegaROM(J,0,1,2,3);
     }
 
   /* Reset sound chips */
@@ -2833,6 +2832,39 @@ int Cheats(int Switch)
 #define feof(F)         gzeof((gzFile)(F))
 #endif
 
+/** fmsxFopen() ***********************************************/
+/** Open a file, searching in multiple standard locations.   **/
+/*************************************************************/
+static FILE *fmsxFopen(const char *Name, const char *Mode)
+{
+  char Path[1024];
+  FILE *F;
+
+  /* 1. Try local path */
+  if((F=fopen(Name,Mode))) return(F);
+
+  /* 2. Try BIOS/ subdirectory */
+  snprintf(Path,sizeof(Path),"BIOS/%s",Name);
+  if((F=fopen(Path,Mode))) return(F);
+
+  /* 3. Try FMSX_DATA_DIR */
+#ifdef FMSX_DATA_DIR
+  snprintf(Path,sizeof(Path),"%s/%s",FMSX_DATA_DIR,Name);
+  if((F=fopen(Path,Mode))) return(F);
+#endif
+
+  /* 4. Try ProgDir */
+  if(ProgDir)
+  {
+    snprintf(Path,sizeof(Path),"%s/%s",ProgDir,Name);
+    if((F=fopen(Path,Mode))) return(F);
+    snprintf(Path,sizeof(Path),"%s/BIOS/%s",ProgDir,Name);
+    if((F=fopen(Path,Mode))) return(F);
+  }
+
+  return(NULL);
+}
+
 /** GuessROM() ***********************************************/
 /** Guess MegaROM mapper of a ROM.                          **/
 /*************************************************************/
@@ -2850,9 +2882,7 @@ int GuessROM(const byte *Buf,int Size)
   { if(Verbose) printf("Failed changing to '%s' directory!\n",ProgDir); }
 
   /* Try opening file with CRCs */
-  if(!(F=fopen("CARTS.CRC","rb")))
-    if(!(F=fopen("BIOS/CARTS.CRC","rb")))
-      F=fopen("CARTS.CRC","rb");
+  F = fmsxFopen("CARTS.CRC","rb");
 
   if(F)
   {
@@ -2871,9 +2901,7 @@ int GuessROM(const byte *Buf,int Size)
   /* Try opening file with SHA1 sums */
   if(Result<0)
   {
-    if(!(F=fopen("CARTS.SHA","rb")))
-      if(!(F=fopen("BIOS/CARTS.SHA","rb")))
-        F=fopen("CARTS.SHA","rb");
+    F = fmsxFopen("CARTS.SHA","rb");
 
     if(F)
     {
@@ -2981,13 +3009,7 @@ byte *LoadROM(const char *Name,int Size,byte *Buf)
   if(Buf&&!Size) return(0);
 
   /* Open file */
-  if(!(F=fopen(Name,"rb")))
-  {
-    if(Name[0] == '/') return(0);
-    char Path[1024];
-    snprintf(Path,sizeof(Path),"BIOS/%s",Name);
-    if(!(F=fopen(Path,"rb"))) return(0);
-  }
+  if(!(F=fmsxFopen(Name,"rb"))) return(0);
 
   /* Determine data size, if wasn't given */
   if(!Size)

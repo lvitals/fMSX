@@ -3,6 +3,11 @@
 
 PROJECT = fmsx
 
+# Standard installation paths
+PREFIX  ?= /usr/local
+BINDIR  ?= $(PREFIX)/bin
+DATADIR ?= $(PREFIX)/share/fmsx
+
 # Detect architecture and OS
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -11,6 +16,7 @@ UNAME_M := $(shell uname -m)
 CC      = gcc
 CXX     = g++
 RM      = rm -f
+INSTALL = install
 
 # Set USE_SDL2=1 to use SDL2 instead of X11
 USE_SDL2 ?= 1
@@ -28,6 +34,7 @@ CFLAGS += -I$(EMULIB) -I$(LIBZ80) -I$(FMSX) -I$(EMUUNIX) -I$(UNIX)
 
 # Base Definitions
 DEFINES = -D_GNU_SOURCE -D_DEFAULT_SOURCE -DFMSX -DUNIX -DBPS16 -DZLIB -DCONDEBUG -DDEBUG
+DEFINES += -DFMSX_DATA_DIR=\"$(DATADIR)\"
 
 # Endianness Detection (Default to LSB for ARM/x86)
 ifeq ($(filter $(UNAME_M), x86_64 i386 i686 arm% aarch64), $(UNAME_M))
@@ -112,7 +119,18 @@ $(PROJECT): $(OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) $(DEFINES) -c $< -o $@
 
+install: $(PROJECT)
+	$(INSTALL) -d $(BINDIR)
+	$(INSTALL) -m 755 $(PROJECT) $(BINDIR)
+	$(INSTALL) -d $(DATADIR)
+	$(INSTALL) -m 644 BIOS/*.ROM $(DATADIR) || true
+	$(INSTALL) -m 644 BIOS/CARTS.* $(DATADIR) || true
+
+uninstall:
+	$(RM) $(BINDIR)/$(PROJECT)
+	$(RM) -r $(DATADIR)
+
 clean:
 	$(RM) $(OBJECTS) $(PROJECT)
 
-.PHONY: all clean
+.PHONY: all clean install uninstall

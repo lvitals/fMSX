@@ -76,13 +76,23 @@ int main(int argc,char *argv[])
   Verbose=1;
   {
     static char ExecDir[1024];
-    int Len = readlink("/proc/self/exe", ExecDir, sizeof(ExecDir)-1);
-    if (Len > 0)
-    {
-      ExecDir[Len] = '\0';
-      char *P = strrchr(ExecDir, '/');
-      if (P) *P = '\0';
+    /* Try FMSX_HOME environment variable first */
+    const char *Home = getenv("FMSX_HOME");
+    if (Home) {
+      strncpy(ExecDir, Home, sizeof(ExecDir)-1);
       ProgDir = ExecDir;
+    } else {
+      /* Fallback to /proc/self/exe on Linux-like systems */
+      int Len = readlink("/proc/self/exe", ExecDir, sizeof(ExecDir)-1);
+      if (Len > 0) {
+        ExecDir[Len] = '\0';
+        char *P = strrchr(ExecDir, '/');
+        if (P) *P = '\0';
+        ProgDir = ExecDir;
+      } else {
+        /* Default to current directory if everything else fails */
+        ProgDir = ".";
+      }
     }
   }
 #else
