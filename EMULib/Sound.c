@@ -119,7 +119,7 @@ static int NoiseGen   = 0x10000;  /* Noise generator seed             */
 static int NoiseOut   = 16;       /* NoiseGen bit used for output     */
 static int NoiseXor   = 14;       /* NoiseGen bit used for XORing     */
 int MasterSwitch      = 0xFFFFFF; /* Switches to turn channels on/off */
-int MasterVolume      = 192;      /* Master volume                    */
+int MasterVolume      = 128;      /* Master volume                    */
 
 /** MIDI Logging Variables ********************************************/
 static const char *LogName = 0;   /* MIDI logging file name           */
@@ -215,8 +215,8 @@ void SetSound(int Channel,int Type)
   if(Verbose & 0x20)
     printf("SetSound: Ch%02d Type=%d\n", Channel, Type);
 
-  /* Set wave channel type (fallback to SND_MELODIC for MIDI instruments) */
-  WaveCH[Channel].Type = Type>=SND_MIDI? SND_MELODIC : Type;
+  /* Set wave channel type (strip MIDI flag and keep internal synthesis type) */
+  WaveCH[Channel].Type = Type & (SND_MIDI - 1);
 
   /* Call sound driver if present */
   if(SndDriver.SetSound) (*SndDriver.SetSound)(Channel,Type);
@@ -877,7 +877,7 @@ unsigned int PlayAudio(int *Wave,unsigned int Samples)
     }
 
     /* Play samples */
-    I = WriteAudio(Buf,J);
+    I = WriteAudio(Buf,J*2);
   }
 
   /* Return number of samples played */

@@ -20,7 +20,7 @@ unsigned int InitAudio(unsigned int Rate, unsigned int Latency) {
     if (AudioDevice) SDL_CloseAudioDevice(AudioDevice);
 
     SDL_memset(&Desired, 0, sizeof(Desired));
-    Desired.freq = Rate;
+    Desired.freq = Rate? Rate:48000;
 #ifdef BPS16
     Desired.format = AUDIO_S16SYS;
 #else
@@ -30,7 +30,7 @@ unsigned int InitAudio(unsigned int Rate, unsigned int Latency) {
 
     /* Force buffer size to be a power of 2 for better stability */
     unsigned int Samples = 1;
-    while(Samples < (Rate * Latency / 1000)) Samples <<= 1;
+    while(Samples < (Desired.freq * Latency / 1000)) Samples <<= 1;
     Desired.samples = Samples;
 
     /* Open audio device, allowing only frequency changes if necessary */
@@ -60,7 +60,7 @@ unsigned int WriteAudio(sample *Data, unsigned int Length) {
         SDL_ClearQueuedAudio(AudioDevice);
     }
 
-    if (SDL_QueueAudio(AudioDevice, Data, Length * sizeof(sample) * 2) < 0) return 0;
+    if (SDL_QueueAudio(AudioDevice, Data, Length * sizeof(sample)) < 0) return 0;
     return Length;
 }
 
