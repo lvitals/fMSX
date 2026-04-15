@@ -645,8 +645,9 @@ void TrashMSX(void)
   if(SaveCMOS)
   {
     if(Verbose) printf("Writing CMOS.ROM...");
-    if(!(F=fopen("CMOS.ROM","wb"))) SaveCMOS=0;
-    else
+    if(!(F=fopen("BIOS/CMOS.ROM","wb")))
+      if(!(F=fopen("CMOS.ROM","wb"))) SaveCMOS=0;
+    if(F)
     {
       if(fwrite(RTC,1,sizeof(RTC),F)!=sizeof(RTC)) SaveCMOS=0;
       fclose(F);
