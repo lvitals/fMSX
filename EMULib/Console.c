@@ -776,11 +776,12 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
   char Filter[64] = "";
   int FilterLen = 0;
   const char *P;
-  int I,J,K,Draw,Total,Top;
+  int I,J,K,Draw,Total,Top,Offset;
   int FileSelect;
 
   /* File selector is a special mode */
   FileSelect = Item==TAG_SELEFILE;
+  Offset     = 0;
 
   /* Drop out if no video buffer */
   if(!VideoImg) return(FileSelect? 0:Result);
@@ -842,7 +843,22 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       /* Draw menu */
       for(J=0;*P&&(J<H-3);J++,P++)
       {
-        CONPrintN(X+2,Y+2+J,P,W-3);
+        if((J==Item) && (Offset>0))
+        {
+          if(FileSelect)
+          {
+            CONChar(X+2,Y+2+J,*P);
+            CONPrintN(X+3,Y+2+J,P+1+Offset,W-4);
+          }
+          else
+          {
+            CONPrintN(X+2,Y+2+J,P+Offset,W-3);
+          }
+        }
+        else
+        {
+          CONPrintN(X+2,Y+2+J,P,W-3);
+        }
         for(;*P;P++);
       }
 
@@ -875,6 +891,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       {
         /* Position inside menu in characters */
         J = (J>>3)-Y;
+        Offset=0;
         if(J<2)         { Item=0;J=CON_UP; }
         else if(J>=H-1) { Item=H-4;J=CON_DOWN; }
         else            { Item=J-2;J=CON_OK; }
@@ -910,6 +927,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
     /* Handle character typing to update filter and jump to item */
     if(FileSelect&&(((J>=0x20)&&(J<0x80))||(J==0x01)))
     {
+      Offset=0;
       /* If real character (not dummy from BS), add to filter */
       if((J!=0x01)&&(FilterLen<sizeof(Filter)-1))
       {
@@ -949,6 +967,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     if(J==CON_UP)
     {
+      Offset=0;
       if(Item>0) Item--;
       else
       {
@@ -964,6 +983,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     if(J==CON_DOWN)
     {
+      Offset=0;
       if((Item<H-4)&&(Item+Top<Total-1)) Item++;
       else
       {
@@ -975,6 +995,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     if(J==CON_PAGEUP)
     {
+      Offset=0;
       Draw=1;
       Top -= H-3;
       if(Top<0) { Top=0;Item=0; }
@@ -982,6 +1003,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     if(J==CON_PAGEDOWN)
     {
+      Offset=0;
       Draw=1;
       Top += H-3;
       if(Top+H-3>Total)
@@ -993,15 +1015,33 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
     if(J==CON_HOME)
     {
+      Offset=0;
       Draw=1;
       Top=Item=0;
     }
 
     if(J==CON_END)
     {
+      Offset=0;
       Draw=1;
       Top=Total>(H-3)? Total-H+3:0;
       Item=Total-Top>0? Total-Top-1:0;
+    }
+
+    if(J==CON_RIGHT)
+    {
+      /* Find current item string */
+      const char *S = nth(Items,Top+Item+1);
+      if(S)
+      {
+        int Len = strlen(FileSelect? S+1:S);
+        if(Offset < Len - (FileSelect? W-4:W-3)) { Offset++;Draw=1; }
+      }
+    }
+
+    if(J==CON_LEFT)
+    {
+      if(Offset > 0) { Offset--;Draw=1; }
     }
   }
   while((J!=CON_OK)&&(J!=CON_EXIT));
