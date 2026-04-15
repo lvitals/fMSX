@@ -1,7 +1,7 @@
 include ../../EMULib/Rules.Unix
 
 # Depending on your CPU endianess, use either -DLSB_FIRST or -DMSB_FIRST.
-# Depending on your X11 display mode, use -DBPP8, -DBPP16, or -DBPP32.
+# Depending on your display mode, use -DBPP8, -DBPP16, or -DBPP32.
 DEFINES+= -DFMSX -DLSB_FIRST -DCONDEBUG -DDEBUG
 CFLAGS += -Wall -I$(LIBZ80)
 OBJECTS+= $(SHA1) $(FLOPPY) $(FDIDISK) $(MCF) $(HUNT) \

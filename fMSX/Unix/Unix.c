@@ -29,10 +29,8 @@ static int term_initialized = 0;
 static unsigned int LastStdinKey = 0;
 static int StdinShiftPressed = 0;
 
-#ifndef SDL2
-#include "LibUnix.h"
-#else
 #include <ctype.h>
+
 #define XK_BackSpace 0xff08
 #define XK_Tab       0xff09
 #define XK_Return    0xff0d
@@ -66,12 +64,6 @@ static int StdinShiftPressed = 0;
 #define XK_Caps_Lock 0xffe5
 #define XK_Alt_L     0xffe9
 #define XK_Alt_R     0xffea
-#define XK_Control_L 0xffe3
-#define XK_Control_R 0xffe4
-#define XK_Caps_Lock 0xffe5
-#define XK_Alt_L     0xffe9
-#define XK_Alt_R     0xffea
-#endif
 
 #define WIDTH       272                   /* Buffer width    */
 #define HEIGHT      228                   /* Buffer height   */
@@ -81,7 +73,7 @@ static int StdinShiftPressed = 0;
 #define XKBD_RES(K) XKeyState[Keys[K][0]]|=Keys[K][1]
 
 /* Combination of EFF_* bits */
-int UseEffects  = EFF_SCALE|EFF_SAVECPU|EFF_MITSHM|EFF_VARBPP|EFF_SYNC;
+int UseEffects  = EFF_SCALE|EFF_SAVECPU|EFF_VARBPP|EFF_SYNC;
 
 int InMenu;                /* 1: In MenuMSX(), ignore keys   */
 int UseZoom     = 2;       /* Zoom factor (1=no zoom)        */
@@ -277,7 +269,7 @@ int InitMachine(void)
 
   /* Create SCREEN8 palette (GGGRRRBB) */
   for(J=0;J<256;J++)
-    BPal[J]=X11GetColor(((J>>2)&0x07)*255/7,((J>>5)&0x07)*255/7,(J&0x03)*255/3);
+    BPal[J]=GetColor(((J>>2)&0x07)*255/7,((J>>5)&0x07)*255/7,(J&0x03)*255/3);
 
   /* Initialize temporary keyboard array */
   memset((void *)XKeyState,0xFF,sizeof(XKeyState));
@@ -479,7 +471,7 @@ void ResetSyncTimer(void)
 /*************************************************************/
 void SetColor(byte N,byte R,byte G,byte B)
 {
-  if(N) XPal[N]=X11GetColor(R,G,B); else XPal0=X11GetColor(R,G,B);
+  if(N) XPal[N]=GetColor(R,G,B); else XPal0=GetColor(R,G,B);
 }
 
 /** HandleKeys() *********************************************/

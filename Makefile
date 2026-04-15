@@ -18,9 +18,6 @@ CXX     = g++
 RM      = rm -f
 INSTALL = install
 
-# Set USE_SDL2=1 to use SDL2 instead of X11
-USE_SDL2 ?= 1
-
 # Directories
 EMULIB  = EMULib
 LIBZ80  = Z80
@@ -33,7 +30,7 @@ CFLAGS  = -O2 -std=c99 -pthread -Wall
 CFLAGS += -I$(EMULIB) -I$(LIBZ80) -I$(FMSX) -I$(EMUUNIX) -I$(UNIX)
 
 # Base Definitions
-DEFINES = -D_GNU_SOURCE -D_DEFAULT_SOURCE -DFMSX -DUNIX -DBPS16 -DZLIB -DCONDEBUG -DDEBUG
+DEFINES = -D_GNU_SOURCE -D_DEFAULT_SOURCE -DFMSX -DUNIX -DBPS16 -DZLIB -DCONDEBUG -DDEBUG -DSDL2
 DEFINES += -DFMSX_DATA_DIR=\"$(DATADIR)\"
 
 # Endianness Detection (Default to LSB for ARM/x86)
@@ -64,6 +61,8 @@ SOURCES = \
     $(EMULIB)/Floppy.c \
     $(EMULIB)/FDIDisk.c \
     $(EMUUNIX)/NetUnix.c \
+    $(EMUUNIX)/LibSDL2.c \
+    $(EMUUNIX)/SndSDL2.c \
     $(LIBZ80)/Z80.c \
     $(LIBZ80)/ConDebug.c \
     $(FMSX)/fMSX.c \
@@ -74,40 +73,8 @@ SOURCES = \
     $(FMSX)/Menu.c \
     $(UNIX)/Unix.c
 
-ifeq ($(USE_SDL2), 1)
-    DEFINES += -DSDL2
-    SOURCES += $(EMUUNIX)/LibSDL2.c $(EMUUNIX)/SndSDL2.c
-    
-    ifeq ($(UNAME_S), Darwin)
-        CFLAGS  += $(shell pkg-config --cflags sdl2)
-        LIBS    += $(shell pkg-config --libs sdl2) -lz
-    else
-        CFLAGS  += $(shell pkg-config --cflags sdl2)
-        LIBS    += $(shell pkg-config --libs sdl2) -lz
-    endif
-else
-    DEFINES += -DMITSHM -DPULSE_AUDIO
-    SOURCES += $(EMUUNIX)/LibUnix.c $(EMUUNIX)/SndUnix.c
-    
-    ifeq ($(UNAME_S), Darwin)
-        # macOS with Homebrew/XQuartz
-        CFLAGS  += -I/opt/homebrew/include -I/opt/X11/include
-        LDFLAGS += -L/opt/homebrew/lib -L/opt/X11/lib
-        LIBS    += -lX11 -lXext -lpulse-simple -lpulse -lz
-    else
-        # Linux (Arch, Debian, etc.)
-        PKG_CONFIG_DEPS = x11 xext libpulse-simple zlib
-        PKG_EXISTS := $(shell pkg-config --exists $(PKG_CONFIG_DEPS) && echo yes)
-        
-        ifeq ($(PKG_EXISTS), yes)
-            CFLAGS  += $(shell pkg-config --cflags $(PKG_CONFIG_DEPS))
-            LIBS    += $(shell pkg-config --libs $(PKG_CONFIG_DEPS))
-        else
-            CFLAGS  += -I/usr/include
-            LIBS    += -lX11 -lXext -lpulse-simple -lz
-        endif
-    endif
-endif
+CFLAGS  += $(shell pkg-config --cflags sdl2)
+LIBS    += $(shell pkg-config --libs sdl2) -lz
 
 OBJECTS = $(SOURCES:.c=.o)
 

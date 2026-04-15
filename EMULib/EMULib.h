@@ -14,9 +14,7 @@
 #define EMULIB_H
 
 #ifdef UNIX
-#ifndef SDL2
-#include "LibUnix.h"
-#endif
+#include <unistd.h>
 #endif
 
 #ifdef __cplusplus
@@ -71,13 +69,6 @@ typedef struct
 #endif
 #ifdef MEEGO
   void *QImg;                /* Pointer to QImage object     */
-#endif
-#if defined(UNIX) && !defined(SDL2)
-  void *XImg;                /* Pointer to XImage structure  */
-  int Attrs;                 /* USE_SHM and other attributes */
-#ifdef MITSHM
-  unsigned char SHMInfo[128]; /* Shared memory info placeholder */
-#endif
 #endif
 } Image;
 
@@ -147,12 +138,6 @@ int ShowVideo(void);
 /** Return pixel corresponding to the given <R,G,B> value.  **/
 /*************************************************************/
 pixel GetColor(unsigned char R,unsigned char G,unsigned char B);
-
-/** X11GetColor **********************************************/
-/** Get pixel for the current screen depth based on the RGB **/
-/** values.                                                 **/
-/*************************************************************/
-unsigned int X11GetColor(unsigned char R,unsigned char G,unsigned char B);
 
 /** ProcessEvents() ******************************************/
 /** Process UI event messages. Returns 1 for continued      **/

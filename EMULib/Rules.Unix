@@ -1,24 +1,12 @@
 ###
 ### Include this file in the first line of your Makefile when compiling
-### EMULib application for FreeBSD, NetBSD, OpenBSD, Linux, or any other
-### generic Unix flavor.
+### EMULib application for generic Unix flavor using SDL2.
 ###
 
 include ../../EMULib/Rules.gcc
 
-UNAME := $(shell uname -s)
-
 # Common flags
-CFLAGS += -I$(EMULIB)/Unix
-DEFINES += -DUNIX -DMITSHM -DBPS16 -DPULSE_AUDIO
+CFLAGS  += -I$(EMULIB)/Unix $(shell pkg-config --cflags sdl2)
+DEFINES += -DUNIX -DBPS16 -DSDL2
 OBJECTS += $(EMUUNIX)
-
-# Platform-specific adjustments
-ifeq ($(UNAME), Darwin)  # macOS (Homebrew)
-    # Homebrew paths (XQuartz & PulseAudio)
-    CFLAGS += -I/opt/homebrew/include -I/opt/homebrew/include/pulse -I/opt/X11/include
-    LIBS += -L/opt/homebrew/lib -L/opt/X11/lib -lX11 -lXext -lpulse-simple -lpulse
-else  # Linux (standard paths)
-    CFLAGS += -I/usr/X11R6/include
-    LIBS += -lX11 -lXext -lpulse-simple
-endif
+LIBS    += $(shell pkg-config --libs sdl2)

@@ -20,7 +20,7 @@
 #include <ctype.h>
 #include <signal.h>
 
-/* Define X11 keysyms locally to avoid X11 dependency */
+/* Define keysyms locally to avoid header dependency */
 #define XK_BackSpace 0xff08
 #define XK_Tab       0xff09
 #define XK_Return    0xff0d
@@ -501,18 +501,6 @@ unsigned int WaitKeyOrMouse(void) {
     unsigned int J;
     while (!(J = GetMouse() & MSE_BUTTONS) && !LastKey && !ExitNow) ProcessEvents(1);
     return J? GetMouse():GetKey();
-}
-
-unsigned int X11GetColor(unsigned char R, unsigned char G, unsigned char B) {
-#if defined(BPP32) || !defined(PIXEL)
-    return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
-#elif defined(BPP16)
-    return (unsigned int)(((31*(R)/255)<<11)|((63*(G)/255)<<5)|(31*(B)/255));
-#elif defined(BPP8)
-    return (unsigned int)(((7*(R)/255)<<5)|((7*(G)/255)<<2)|(3*(B)/255));
-#else
-    return (unsigned int)(((int)R<<16)|((int)G<<8)|B);
-#endif
 }
 
 pixel *NewImage(Image *Img,int Width,int Height) {

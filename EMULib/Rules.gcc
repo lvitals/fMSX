@@ -23,15 +23,8 @@ OBJECTS	= $(EMULIB)/EMULib.o $(EMULIB)/Sound.o   \
 	  $(EMULIB)/Touch.o
 
 # Platform-specific EMULib files
-EMUUNIX	= $(EMULIB)/Unix/LibUnix.o $(EMULIB)/Unix/SndUnix.o \
+EMUUNIX	= $(EMULIB)/Unix/LibSDL2.o $(EMULIB)/Unix/SndSDL2.o \
 	  $(EMULIB)/Unix/NetUnix.o
-EMUMAEMO= $(EMULIB)/Maemo/LibMaemo.o $(EMULIB)/Unix/GConf.o \
-	  $(EMULIB)/Unix/NetUnix.o $(EMULIB)/LibARM-BPP16.o
-EMUMEEGO= $(EMULIB)/Meego/LibMeego.o $(EMULIB)/Unix/GConf.o \
-	  $(EMULIB)/Unix/NetUnix.o $(EMULIB)/LibARM-BPP16.o
-EMUSTMP	= $(EMULIB)/STMP3700/LibSTMP3700.o $(EMULIB)/Unix/SndALSA.o \
-	  $(EMULIB)/LibARM-BPP16.o $(EMULIB)/LibARM-BPP32.o
-EMUNXC	= $(EMULIB)/NXC2600/LibNXC2600.o $(EMULIB)/Unix/SndSDL.o
 
 # SHA1 computation library
 SHA1	= $(EMULIB)/SHA1.o
