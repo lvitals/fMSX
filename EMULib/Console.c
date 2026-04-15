@@ -848,11 +848,13 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
           if(FileSelect)
           {
             CONChar(X+2,Y+2+J,*P);
-            CONPrintN(X+3,Y+2+J,P+1+Offset,W-4);
+            CONChar(X+3,Y+2+J,CON_DOTS);
+            CONPrintN(X+4,Y+2+J,P+1+Offset,W-5);
           }
           else
           {
-            CONPrintN(X+2,Y+2+J,P+Offset,W-3);
+            CONChar(X+2,Y+2+J,CON_DOTS);
+            CONPrintN(X+3,Y+2+J,P+Offset,W-4);
           }
         }
         else
@@ -1035,7 +1037,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       if(S)
       {
         int Len = strlen(FileSelect? S+1:S);
-        if(Offset < Len - (FileSelect? W-4:W-3)) { Offset++;Draw=1; }
+        if(Offset < Len - (FileSelect? W-5:W-4)) { Offset++;Draw=1; }
       }
     }
 
