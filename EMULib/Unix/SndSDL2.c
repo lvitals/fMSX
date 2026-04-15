@@ -11,69 +11,71 @@
 #include "Sound.h"
 #include <SDL2/SDL.h>
 
+static SDL_AudioDeviceID AudioDevice = 0;
 static SDL_AudioSpec AudioSpec;
-static int AudioOpened = 0;
 
 unsigned int InitAudio(unsigned int Rate, unsigned int Latency) {
-    if (AudioOpened) SDL_CloseAudio();
+    SDL_AudioSpec Desired;
 
-    SDL_memset(&AudioSpec, 0, sizeof(AudioSpec));
-    AudioSpec.freq = Rate;
+    if (AudioDevice) SDL_CloseAudioDevice(AudioDevice);
+
+    SDL_memset(&Desired, 0, sizeof(Desired));
+    Desired.freq = Rate;
 #ifdef BPS16
-    AudioSpec.format = AUDIO_S16SYS;
+    Desired.format = AUDIO_S16SYS;
 #else
-    AudioSpec.format = AUDIO_S8;
+    Desired.format = AUDIO_S8;
 #endif
-    AudioSpec.channels = 1;
+    Desired.channels = 1;
 
     /* Force buffer size to be a power of 2 for better stability */
     unsigned int Samples = 1;
     while(Samples < (Rate * Latency / 1000)) Samples <<= 1;
-    AudioSpec.samples = Samples;
+    Desired.samples = Samples;
 
-    if (SDL_OpenAudio(&AudioSpec, NULL) < 0) {
+    /* Open audio device, allowing only frequency changes if necessary */
+    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &Desired, &AudioSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
+    if (!AudioDevice) {
         return 0;
     }
 
-    SDL_PauseAudio(0);
-    AudioOpened = 1;
-    return Rate;
+    SDL_PauseAudioDevice(AudioDevice, 0);
+    
+    /* Return the actual frequency obtained from SDL */
+    return AudioSpec.freq;
 }
 
 void TrashAudio(void) {
-    if (AudioOpened) {
-        SDL_CloseAudio();
-        AudioOpened = 0;
+    if (AudioDevice) {
+        SDL_CloseAudioDevice(AudioDevice);
+        AudioDevice = 0;
     }
 }
 
 unsigned int WriteAudio(sample *Data, unsigned int Length) {
-    if (!AudioOpened) return 0;
+    if (!AudioDevice) return 0;
     
     /* If there's more than 500ms of audio queued, clear it to eliminate lag */
-    if (SDL_GetQueuedAudioSize(1) > (AudioSpec.freq * sizeof(sample) / 2)) {
-        SDL_ClearQueuedAudio(1);
+    if (SDL_GetQueuedAudioSize(AudioDevice) > (AudioSpec.freq * sizeof(sample) / 2)) {
+        SDL_ClearQueuedAudio(AudioDevice);
     }
 
-    if (SDL_QueueAudio(1, Data, Length * sizeof(sample)) < 0) return 0;
+    if (SDL_QueueAudio(AudioDevice, Data, Length * sizeof(sample)) < 0) return 0;
     return Length;
 }
 
 unsigned int GetFreeAudio(void) {
-    if (!AudioOpened) return 0;
+    if (!AudioDevice) return 0;
     
-    unsigned int Queued = SDL_GetQueuedAudioSize(1);
-    unsigned int Max    = AudioSpec.samples * sizeof(sample);
+    unsigned int Queued = SDL_GetQueuedAudioSize(AudioDevice);
+    unsigned int Max    = AudioSpec.samples * sizeof(sample) * 4; /* Allow some headroom */
     
-    /* If the queue is already filled with 2x the buffer size, no more space */
-    if (Queued >= (Max * 2)) return 0;
-    
-    /* Return remaining space in samples (not bytes) */
-    return ((Max * 2) - Queued) / sizeof(sample);
+    if (Queued >= Max) return 0;
+    return (Max - Queued) / sizeof(sample);
 }
 
 int PauseAudio(int Switch) {
-    if (!AudioOpened) return 0;
-    SDL_PauseAudio(Switch);
+    if (!AudioDevice) return 0;
+    SDL_PauseAudioDevice(AudioDevice, Switch);
     return 1;
 }
