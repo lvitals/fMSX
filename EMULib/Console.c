@@ -400,6 +400,16 @@ static const char *nth(const char *S,int N)
   return(S);  
 }
 
+/** CONIsSelectable() ****************************************/
+/** Check if a menu item is selectable (not empty or spaces)**/
+/*************************************************************/
+static int CONIsSelectable(const char *S)
+{
+  if(!S || !*S) return(0);
+  while(*S == ' ') S++;
+  return(*S != '\0');
+}
+
 #if !defined(_MSC_VER) && !defined(__WATCOMC__)
 static int stricmp(const char *S1,const char *S2)
 {
@@ -806,6 +816,10 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
 
   /* Prepare for selection loop */
   Item = FileSelect? 0:Item<1? 0:Item>Total? Total-1:Item-1;
+  /* Skip to the next selectable item if current is not selectable */
+  if(!FileSelect)
+    for(I=0;(I<Total)&&!CONIsSelectable(nth(Items,Item+1));++I)
+      Item=(Item+1)%Total;
   Top  = Item-Item%(H-3);
   Item = Item%(H-3);
   Draw = 1;
@@ -896,7 +910,8 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
         Offset=0;
         if(J<2)         { Item=0;J=CON_UP; }
         else if(J>=H-1) { Item=H-4;J=CON_DOWN; }
-        else            { Item=J-2;J=CON_OK; }
+        else if(CONIsSelectable(nth(Items,Top+J-1))) { Item=J-2;J=CON_OK; }
+        else J=0; /* Not selectable */
       }
       else
       {
@@ -970,29 +985,33 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
     if(J==CON_UP)
     {
       Offset=0;
-      if(Item>0) Item--;
-      else
-      {
-        Draw=1;
-        if(Top>0) Top--;
+      do {
+        if(Item>0) Item--;
         else
         {
-          Top=Total>(H-3)? Total-H+3:0;
-          Item=Total-Top>0? Total-Top-1:0;
+          Draw=1;
+          if(Top>0) Top--;
+          else
+          {
+            Top=Total>(H-3)? Total-H+3:0;
+            Item=Total-Top>0? Total-Top-1:0;
+          }
         }
-      }
+      } while(!FileSelect && !CONIsSelectable(nth(Items,Top+Item+1)) && (Total>1));
     }
 
     if(J==CON_DOWN)
     {
       Offset=0;
-      if((Item<H-4)&&(Item+Top<Total-1)) Item++;
-      else
-      {
-        Draw=1;
-        if(Top+H-3<Total) Top++;
-        else { Top=0;Item=0; }
-      }
+      do {
+        if((Item<H-4)&&(Item+Top<Total-1)) Item++;
+        else
+        {
+          Draw=1;
+          if(Top+H-3<Total) Top++;
+          else { Top=0;Item=0; }
+        }
+      } while(!FileSelect && !CONIsSelectable(nth(Items,Top+Item+1)) && (Total>1));
     }
 
     if(J==CON_PAGEUP)
