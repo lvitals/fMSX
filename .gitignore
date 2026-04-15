@@ -7,3 +7,6 @@ EMULib/*.o
 EMULib/Unix/*.o
 .DS_Store
 fmsx
+CMOS.ROM
+BIOS/CMOS.ROM
+LOG.MID
