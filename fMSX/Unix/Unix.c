@@ -77,7 +77,7 @@ int UseEffects  = EFF_SCALE|EFF_SAVECPU|EFF_VARBPP|EFF_SYNC;
 
 int InMenu;                /* 1: In MenuMSX(), ignore keys   */
 int UseZoom     = 4;       /* Zoom factor (1=no zoom)        */
-int UseSound    = 22050;   /* Audio sampling frequency (Hz)  */
+int UseSound    = 44100;   /* Audio sampling frequency (Hz)  */
 int SyncFreq    = 60;      /* Sync frequency (0=sync off)    */
 int FastForward;           /* Fast-forwarded UPeriod backup  */
 int SndSwitch;             /* Mask of enabled sound channels */
@@ -278,7 +278,7 @@ int InitMachine(void)
   SetKeyHandler(HandleKeys);
 
   /* Initialize sound */
-  InitSound(UseSound,SndLatency);
+  UseSound = InitSound(UseSound,SndLatency);
   SndSwitch=(1<<MAXCHANNELS)-1;
   SndVolume=64;
   SetChannels(SndVolume,SndSwitch);

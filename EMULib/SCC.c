@@ -29,7 +29,7 @@ void ResetSCC(register SCC *D,int First)
   /* Set instruments, frequencies, volumes */
   for(J=0;J<SCC_CHANNELS;J++)
   {
-    SetSound(0+First,SND_MELODIC);
+    SetSound(J+First,SND_MELODIC);
     D->Freq[J]=D->Volume[J]=0;
   }
 
@@ -118,8 +118,8 @@ void WriteSCCP(register SCC *D,register byte R,register byte V)
       case 10: case 11: case 12: case 13: case 14:
         /* Compute channel number */
         R-=10;
-        /* Compute and assign new volume */
-        D->Volume[R]=255*(V&0x0F)/15;
+        /* Compute and assign new volume (attenuated to ~70%) */
+        D->Volume[R]=180*(V&0x0F)/15;
         /* Compute changed channels mask */
         D->Changed|=(1<<R)&I;
         break;
@@ -185,3 +185,4 @@ void SyncSCC(register SCC *D,register byte Sync)
 
   D->Changed=D->WChanged=0x00;
 }
+

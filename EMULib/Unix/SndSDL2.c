@@ -26,7 +26,7 @@ unsigned int InitAudio(unsigned int Rate, unsigned int Latency) {
 #else
     Desired.format = AUDIO_S8;
 #endif
-    Desired.channels = 1;
+    Desired.channels = 2;
 
     /* Force buffer size to be a power of 2 for better stability */
     unsigned int Samples = 1;
@@ -56,11 +56,11 @@ unsigned int WriteAudio(sample *Data, unsigned int Length) {
     if (!AudioDevice) return 0;
     
     /* If there's more than 500ms of audio queued, clear it to eliminate lag */
-    if (SDL_GetQueuedAudioSize(AudioDevice) > (AudioSpec.freq * sizeof(sample) / 2)) {
+    if (SDL_GetQueuedAudioSize(AudioDevice) > (AudioSpec.freq * sizeof(sample) * 2 / 2)) {
         SDL_ClearQueuedAudio(AudioDevice);
     }
 
-    if (SDL_QueueAudio(AudioDevice, Data, Length * sizeof(sample)) < 0) return 0;
+    if (SDL_QueueAudio(AudioDevice, Data, Length * sizeof(sample) * 2) < 0) return 0;
     return Length;
 }
 

@@ -11,10 +11,14 @@
 /**     commercially. Please, notify me, if you make any    **/
 /**     changes to this file.                               **/
 /*************************************************************/
-#include "Sound.h"
 
+#define SLOW_MELODIC_AUDIO
+
+#include "Sound.h"
 #include <stdio.h>
 #include <string.h>
+
+extern unsigned char Verbose;
 
 #if defined(UNIX) || defined(MAEMO) || defined(STMP3700) || defined(NXC2600) || defined(ANDROID)
 #include <unistd.h>
@@ -95,22 +99,18 @@ static struct
   int Count;                      /* Phase counter                    */
 } WaveCH[SND_CHANNELS] =
 {
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 }
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 }
 };
 
 /** RenderAudio() Variables *******************************************/
@@ -118,7 +118,7 @@ static int SndRate    = 0;        /* Sound rate (0=Off)               */
 static int NoiseGen   = 0x10000;  /* Noise generator seed             */
 static int NoiseOut   = 16;       /* NoiseGen bit used for output     */
 static int NoiseXor   = 14;       /* NoiseGen bit used for XORing     */
-int MasterSwitch      = 0xFFFF;   /* Switches to turn channels on/off */
+int MasterSwitch      = 0xFFFFFF; /* Switches to turn channels on/off */
 int MasterVolume      = 192;      /* Master volume                    */
 
 /** MIDI Logging Variables ********************************************/
@@ -142,7 +142,7 @@ static void WriteTempo(int Freq);
 /** Make MIDI channel#10 last, as it is normally used for   **/
 /** percussion instruments only and doesn't sound nice.     **/
 /*************************************************************/
-#define SHIFT(Ch) (Ch==15? 9:Ch>8? Ch+1:Ch)
+#define SHIFT(Ch) (Ch>=15? 9:Ch>8? Ch+1:Ch)
 
 /** GetSndRate() *********************************************/
 /** Get current sampling rate used for synthesis.           **/
@@ -160,6 +160,10 @@ void Sound(int Channel,int Freq,int Volume)
   if((Channel<0)||(Channel>=SND_CHANNELS)) return;
   Freq   = Freq<0? 0:Freq;
   Volume = Volume<0? 0:Volume>255? 255:Volume;
+
+  if(Verbose & 0x20)
+    printf("Sound: Ch%02d Freq=%-5d Vol=%-3d Type=%d\n",
+      Channel, Freq, Volume, WaveCH[Channel].Type);
 
   /* Modify channel parameters */ 
   WaveCH[Channel].Volume = Volume;
@@ -189,6 +193,9 @@ void Drum(int Type,int Force)
   /* Drum force has to be valid */
   Force = Force<0? 0:Force>255? 255:Force;
 
+  if(Verbose & 0x20)
+    printf("Drum: Type=%d Force=%d\n", Type, Force);
+
   /* Call sound driver if present */
   if(SndDriver.Drum) (*SndDriver.Drum)(Type,Force);
 
@@ -205,8 +212,11 @@ void SetSound(int Channel,int Type)
   /* Channel has to be valid */
   if((Channel<0)||(Channel>=SND_CHANNELS)) return;
 
-  /* Set wave channel type */
-  WaveCH[Channel].Type = Type;
+  if(Verbose & 0x20)
+    printf("SetSound: Ch%02d Type=%d\n", Channel, Type);
+
+  /* Set wave channel type (fallback to SND_MELODIC for MIDI instruments) */
+  WaveCH[Channel].Type = Type>=SND_MIDI? SND_MELODIC : Type;
 
   /* Call sound driver if present */
   if(SndDriver.SetSound) (*SndDriver.SetSound)(Channel,Type);
@@ -644,7 +654,7 @@ unsigned int InitSound(unsigned int Rate,unsigned int Latency)
   /* Reset sound parameters */
   for(I=0;I<SND_CHANNELS;I++)
   {
-    /* NOTICE: Preserving Type value! */
+    WaveCH[I].Type   = SND_MELODIC;
     WaveCH[I].Count  = 0;
     WaveCH[I].Volume = 0;
     WaveCH[I].Freq   = 0;
@@ -661,7 +671,7 @@ unsigned int InitSound(unsigned int Rate,unsigned int Latency)
   if(!Rate) { SndRate=0;return(0); }
 
   /* Done */
-  SetChannels(MasterVolume,MasterSwitch);
+  SetChannels(MasterVolume,0xFFFFFF);
   return(SndRate=Rate);
 }
 
@@ -832,7 +842,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
 /*************************************************************/
 unsigned int PlayAudio(int *Wave,unsigned int Samples)
 {
-  sample Buf[256];
+  sample Buf[512]; /* Double buffer for stereo */
   unsigned int I,J,K;
   int D;
 
@@ -846,23 +856,23 @@ unsigned int PlayAudio(int *Wave,unsigned int Samples)
   /* Spin until all samples played or WriteAudio() fails */
   for(K=I=J=0;(K<Samples)&&(I==J);K+=I)
   {
-    /* Compute number of samples to convert */
-    J = sizeof(Buf)/sizeof(sample);
+    /* Compute number of samples to convert (limit by buffer size / 2 channels) */
+    J = (sizeof(Buf)/sizeof(sample))/2;
     J = Samples-K>J? J:Samples-K;
 
-    /* Convert samples */
+    /* Convert samples to stereo (duplicate L/R) */
     for(I=0;I<J;++I)
     {
       D      = ((*Wave++)*MasterVolume)>>8;
       D      = D>32767? 32767:D<-32768? -32768:D;
 #if defined(BPU16)
-      Buf[I] = D+32768;
+      Buf[I*2] = Buf[I*2+1] = D+32768;
 #elif defined(BPS16)
-      Buf[I] = D;
+      Buf[I*2] = Buf[I*2+1] = D;
 #elif defined(BPU8)
-      Buf[I] = (D>>8)+128;
+      Buf[I*2] = Buf[I*2+1] = (D>>8)+128;
 #else
-      Buf[I] = D>>8;
+      Buf[I*2] = Buf[I*2+1] = D>>8;
 #endif
     }
 

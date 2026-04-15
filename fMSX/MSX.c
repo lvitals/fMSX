@@ -972,8 +972,8 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
 
   /* Reset sound chips */
   Reset8910(&PSG,PSG_CLOCK,0);
-  ResetSCC(&SCChip,AY8910_CHANNELS);
-  Reset2413(&OPLL,AY8910_CHANNELS);
+  ResetSCC(&SCChip,6);
+  Reset2413(&OPLL,11);
   Sync8910(&PSG,AY8910_SYNC);
   SyncSCC(&SCChip,SCC_SYNC);
   Sync2413(&OPLL,YM2413_SYNC);
@@ -1134,6 +1134,7 @@ byte InZ80(word Port)
   switch(Port)
   {
 
+case 0x7C: return(0x00);                   /* OPLL Status          */
 case 0x90: return(0xFD);                   /* Printer READY signal */
 case 0xB5: return(RTCIn(RTCReg));          /* RTC registers        */
 
