@@ -244,6 +244,16 @@ void TrashUnix(void) {
     SDL_Quit();
 }
 
+static int GetControllerIdx(SDL_JoystickID ID) {
+    for (int i = 0; i < 2; ++i) {
+        if (Controllers[i]) {
+            SDL_Joystick *Joy = SDL_GameControllerGetJoystick(Controllers[i]);
+            if (Joy && SDL_JoystickInstanceID(Joy) == ID) return i;
+        }
+    }
+    return -1;
+}
+
 static void HandleSDLEvent(SDL_Event *Event) {
     switch (Event->type) {
         case SDL_QUIT:
@@ -375,8 +385,11 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 }
                 
                 if (Mask) {
-                    if (Event->cbutton.which > 0) Mask <<= 16;
-                    if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                    int idx = GetControllerIdx(Event->cbutton.which);
+                    if (idx >= 0) {
+                        if (idx == 1) Mask <<= 16;
+                        if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                    }
                 }
                 
                 if (Key && KeyHandler) {
@@ -401,8 +414,11 @@ static void HandleSDLEvent(SDL_Event *Event) {
                     case 5: Mask = BTN_START; break;
                 }
                 if (Mask) {
-                    if (Event->jbutton.which > 0) Mask <<= 16;
-                    if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                    int idx = GetControllerIdx(Event->jbutton.which);
+                    if (idx >= 0) {
+                        if (idx == 1) Mask <<= 16;
+                        if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                    }
                 }
             }
             break;
@@ -411,19 +427,19 @@ static void HandleSDLEvent(SDL_Event *Event) {
             {
                 int Val = Event->caxis.value;
                 int Threshold = 16384;
+                int idx = GetControllerIdx(Event->caxis.which);
+                if (idx < 0) break;
+                unsigned int MaskL = idx ? (BTN_LEFT << 16) : BTN_LEFT;
+                unsigned int MaskR = idx ? (BTN_RIGHT << 16) : BTN_RIGHT;
+                unsigned int MaskU = idx ? (BTN_UP << 16) : BTN_UP;
+                unsigned int MaskD = idx ? (BTN_DOWN << 16) : BTN_DOWN;
                 
                 if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
-                    if (Val > Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
-                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
-                    
-                    if (Val < -Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
-                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                    if (Val > Threshold) JoyState |= MaskR; else JoyState &= ~MaskR;
+                    if (Val < -Threshold) JoyState |= MaskL; else JoyState &= ~MaskL;
                 } else if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
-                    if (Val > Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
-                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
-                    
-                    if (Val < -Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
-                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                    if (Val > Threshold) JoyState |= MaskD; else JoyState &= ~MaskD;
+                    if (Val < -Threshold) JoyState |= MaskU; else JoyState &= ~MaskU;
                 }
             }
             break;
@@ -432,16 +448,19 @@ static void HandleSDLEvent(SDL_Event *Event) {
             {
                 int Val = Event->jaxis.value;
                 int Threshold = 16384;
+                int idx = GetControllerIdx(Event->jaxis.which);
+                if (idx < 0) break;
+                unsigned int MaskL = idx ? (BTN_LEFT << 16) : BTN_LEFT;
+                unsigned int MaskR = idx ? (BTN_RIGHT << 16) : BTN_RIGHT;
+                unsigned int MaskU = idx ? (BTN_UP << 16) : BTN_UP;
+                unsigned int MaskD = idx ? (BTN_DOWN << 16) : BTN_DOWN;
+
                 if (Event->jaxis.axis == 0) { /* X Axis */
-                    if (Val > Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
-                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
-                    if (Val < -Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
-                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                    if (Val > Threshold) JoyState |= MaskR; else JoyState &= ~MaskR;
+                    if (Val < -Threshold) JoyState |= MaskL; else JoyState &= ~MaskL;
                 } else if (Event->jaxis.axis == 1) { /* Y Axis */
-                    if (Val > Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
-                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
-                    if (Val < -Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
-                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                    if (Val > Threshold) JoyState |= MaskD; else JoyState &= ~MaskD;
+                    if (Val < -Threshold) JoyState |= MaskU; else JoyState &= ~MaskU;
                 }
             }
             break;
@@ -470,6 +489,9 @@ static void HandleSDLEvent(SDL_Event *Event) {
                             if (Verbose) printf("SDL: Controller %d disconnected\n", j);
                             SDL_GameControllerClose(C);
                             Controllers[j] = NULL;
+                            /* Clear joystick state for this port */
+                            if (j == 0) JoyState &= ~BTN_ALL;
+                            else JoyState &= ~((unsigned int)BTN_ALL << 16);
                             break;
                         }
                     }
