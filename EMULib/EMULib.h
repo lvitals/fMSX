@@ -166,6 +166,7 @@ void SetKeyHandler(void (*Handler)(unsigned int Key));
 /** Get the state of joypad buttons (1="pressed").          **/
 /*************************************************************/
 unsigned int GetJoystick(void);
+int GetJoystickCount(void);
 
 /** WaitJoystick() *******************************************/
 /** Wait for joystick buttons.                              **/

@@ -75,6 +75,7 @@ extern unsigned char Verbose;
 static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
 static SDL_Texture *Texture   = NULL;
+static SDL_GameController *Controllers[2] = { NULL, NULL };
 
 static Uint64 NextFrameTime = 0;
 static Uint64 FrameDuration = 0;
@@ -176,7 +177,7 @@ static unsigned int SDLToKeysym(SDL_Keycode Key) {
 }
 
 int InitUnix(const char *Title, int Width, int Height) {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) < 0) {
         return 0;
     }
 
@@ -194,6 +195,33 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDL_RenderClear(Renderer);
     SDL_RenderPresent(Renderer);
 
+    /* Open available game controllers or joysticks */
+    int ControllerIdx = 0;
+    int NumJoysticks = SDL_NumJoysticks();
+    if (NumJoysticks > 0) printf("SDL: Found %d joystick(s)\n", NumJoysticks);
+
+    for (int i = 0; i < NumJoysticks && ControllerIdx < 2; ++i) {
+        if (SDL_IsGameController(i)) {
+            Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
+            if (Controllers[ControllerIdx]) {
+                printf("SDL: Opened GameController %d: %s\n", ControllerIdx, SDL_GameControllerName(Controllers[ControllerIdx]));
+                ControllerIdx++;
+            }
+        } else {
+            /* Fallback to generic joystick if no GameController mapping exists */
+            SDL_Joystick *Joy = SDL_JoystickOpen(i);
+            if (Joy) {
+                printf("SDL: Opened generic Joystick %d: %s\n", ControllerIdx, SDL_JoystickName(Joy));
+                /* We still want to use it, but generic joysticks need different handling. 
+                   For now, we just log it. In a full implementation, we'd add SDL_JOYBUTTONDOWN etc. */
+                SDL_JoystickClose(Joy);
+                /* Try to force it as a GameController anyway if it has enough buttons */
+                Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
+                if (Controllers[ControllerIdx]) ControllerIdx++;
+            }
+        }
+    }
+
     signal(SIGINT, SigHandler);
     signal(SIGTERM, SigHandler);
 
@@ -201,6 +229,12 @@ int InitUnix(const char *Title, int Width, int Height) {
 }
 
 void TrashUnix(void) {
+    for (int i = 0; i < 2; ++i) {
+        if (Controllers[i]) {
+            SDL_GameControllerClose(Controllers[i]);
+            Controllers[i] = NULL;
+        }
+    }
     if (Texture) SDL_DestroyTexture(Texture);
     if (Renderer) SDL_DestroyRenderer(Renderer);
     if (SDLWindow) SDL_DestroyWindow(SDLWindow);
@@ -302,6 +336,124 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 Event->window.event == SDL_WINDOWEVENT_EXPOSED ||
                 Event->window.event == SDL_WINDOWEVENT_RESIZED) {
                 ShowVideo();
+            }
+            break;
+
+        case SDL_CONTROLLERBUTTONDOWN:
+        case SDL_CONTROLLERBUTTONUP:
+            {
+                int Pressed = (Event->type == SDL_CONTROLLERBUTTONDOWN);
+                unsigned int Mask = 0;
+                switch (Event->cbutton.button) {
+                    case SDL_CONTROLLER_BUTTON_DPAD_UP:    Mask = BTN_UP; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:  Mask = BTN_DOWN; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:  Mask = BTN_LEFT; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: Mask = BTN_RIGHT; break;
+                    case SDL_CONTROLLER_BUTTON_A:
+                    case SDL_CONTROLLER_BUTTON_B:          Mask = BTN_FIREA; break;
+                    case SDL_CONTROLLER_BUTTON_X:
+                    case SDL_CONTROLLER_BUTTON_Y:          Mask = BTN_FIREB; break;
+                    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:  Mask = BTN_FIREL; break;
+                    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: Mask = BTN_FIRER; break;
+                    case SDL_CONTROLLER_BUTTON_START:      Mask = BTN_START; break;
+                    case SDL_CONTROLLER_BUTTON_BACK:       Mask = BTN_SELECT; break;
+                }
+                
+                if (Mask) {
+                    if (Event->cbutton.which > 0) Mask <<= 16;
+                    if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                }
+            }
+            break;
+
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+            {
+                int Pressed = (Event->type == SDL_JOYBUTTONDOWN);
+                unsigned int Mask = 0;
+                /* Generic joystick button mapping (very basic fallback) */
+                switch (Event->jbutton.button) {
+                    case 0: Mask = BTN_FIREA; break;
+                    case 1: Mask = BTN_FIREB; break;
+                    case 2: Mask = BTN_FIREL; break;
+                    case 3: Mask = BTN_FIRER; break;
+                    case 4: Mask = BTN_SELECT; break;
+                    case 5: Mask = BTN_START; break;
+                }
+                if (Mask) {
+                    if (Event->jbutton.which > 0) Mask <<= 16;
+                    if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                }
+            }
+            break;
+
+        case SDL_CONTROLLERAXISMOTION:
+            {
+                int Val = Event->caxis.value;
+                int Threshold = 16384;
+                
+                if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
+                    if (Val > Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
+                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
+                    
+                    if (Val < -Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                } else if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
+                    if (Val > Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
+                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
+                    
+                    if (Val < -Threshold) JoyState |= (Event->caxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                    else JoyState &= ~(Event->caxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                }
+            }
+            break;
+
+        case SDL_JOYAXISMOTION:
+            {
+                int Val = Event->jaxis.value;
+                int Threshold = 16384;
+                if (Event->jaxis.axis == 0) { /* X Axis */
+                    if (Val > Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
+                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_RIGHT << 16) : BTN_RIGHT);
+                    if (Val < -Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_LEFT << 16) : BTN_LEFT);
+                } else if (Event->jaxis.axis == 1) { /* Y Axis */
+                    if (Val > Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
+                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_DOWN << 16) : BTN_DOWN);
+                    if (Val < -Threshold) JoyState |= (Event->jaxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                    else JoyState &= ~(Event->jaxis.which > 0 ? (BTN_UP << 16) : BTN_UP);
+                }
+            }
+            break;
+
+        case SDL_CONTROLLERDEVICEADDED:
+            {
+                int i = Event->cdevice.which;
+                if (SDL_IsGameController(i)) {
+                    for (int j = 0; j < 2; ++j) {
+                        if (!Controllers[j]) {
+                            Controllers[j] = SDL_GameControllerOpen(i);
+                            if (Verbose) printf("SDL: Controller %d connected: %s\n", j, SDL_GameControllerName(Controllers[j]));
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+
+        case SDL_CONTROLLERDEVICEREMOVED:
+            {
+                SDL_GameController *C = SDL_GameControllerFromInstanceID(Event->cdevice.which);
+                if (C) {
+                    for (int j = 0; j < 2; ++j) {
+                        if (Controllers[j] == C) {
+                            if (Verbose) printf("SDL: Controller %d disconnected\n", j);
+                            SDL_GameControllerClose(C);
+                            Controllers[j] = NULL;
+                            break;
+                        }
+                    }
+                }
             }
             break;
     }
@@ -461,6 +613,14 @@ int WaitSyncTimer(void) {
 unsigned int GetJoystick(void) {
     ProcessEvents(0);
     return JoyState;
+}
+
+int GetJoystickCount(void) {
+    int Count = 0;
+    for (int i = 0; i < 2; ++i) {
+        if (Controllers[i]) Count++;
+    }
+    return Count;
 }
 
 unsigned int GetKey(void) {

@@ -283,6 +283,19 @@ int InitMachine(void)
   SndVolume=64;
   SetChannels(SndVolume,SndSwitch);
 
+  /* Auto-detect joysticks if not explicitly set */
+  int NumJoys = GetJoystickCount();
+  if (NumJoys > 0) {
+    if (JOYTYPE(0) == JOY_NONE) {
+      SETJOYTYPE(0, JOY_STICK);
+      printf("MSX: Automatically attached joystick to port A\n");
+    }
+    if (NumJoys > 1 && JOYTYPE(1) == JOY_NONE) {
+      SETJOYTYPE(1, JOY_STICK);
+      printf("MSX: Automatically attached joystick to port B\n");
+    }
+  }
+
   /* Initialize sync timer if needed */
   if((SyncFreq>0)&&!SetSyncTimer(SyncFreq*UPeriod/100)) SyncFreq=0;
 
