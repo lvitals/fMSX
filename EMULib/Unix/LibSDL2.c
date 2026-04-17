@@ -191,6 +191,8 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDLWindow = SDL_CreateWindow(Title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!SDLWindow) return 0;
 
+    SDL_MaximizeWindow(SDLWindow);
+
     Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_ACCELERATED);
     if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, 0);
     if (!Renderer) Renderer = SDL_CreateRenderer(SDLWindow, -1, SDL_RENDERER_SOFTWARE);
