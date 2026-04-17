@@ -44,7 +44,85 @@ static pixel BG = PIXEL(0,0,0);
 #define EOLN(C)      (!(C)||((C)=='\n'))
 #define TAG_SELEFILE 0x5E7EF17E
 #define CON_RELOAD   0x0101
-#define CON_BACK     0x0102
+#define CON_BACK     0x0202
+
+/** GetUTF8() ************************************************/
+/** Get next character from a UTF8 string.                  **/
+/*************************************************************/
+static int GetUTF8(const char **S)
+{
+  const unsigned char *P = (const unsigned char *)*S;
+  int Res;
+
+  if(!*P) return 0;
+
+  if(*P < 0x80) Res = *P++;
+  else if((*P & 0xE0) == 0xC0)
+  {
+    Res = ((*P & 0x1F) << 6) | (P[1] & 0x3F);
+    P += 2;
+  }
+  else if((*P & 0xF0) == 0xE0)
+  {
+    Res = ((*P & 0x0F) << 12) | ((P[1] & 0x3F) << 6) | (P[2] & 0x3F);
+    P += 3;
+  }
+  else if((*P & 0xF8) == 0xF0)
+  {
+    Res = ((*P & 0x07) << 18) | ((P[1] & 0x3F) << 12) | ((P[2] & 0x3F) << 6) | (P[3] & 0x3F);
+    P += 4;
+  }
+  else Res = *P++;
+
+  *S = (const char *)P;
+  return Res;
+}
+
+/** MapUnicode() *********************************************/
+/** Map Unicode character to a glyph in NormalFont.         **/
+/*************************************************************/
+static char MapUnicode(int U)
+{
+  if(U < 128) return (char)U;
+  switch(U)
+  {
+    case 0x00C0: case 0x00C1: case 0x00C2: case 0x00C3:
+    case 0x00C4: case 0x00C5: return 'A';
+    case 0x00E0: case 0x00E1: case 0x00E2: case 0x00E3:
+    case 0x00E4: case 0x00E5: return 'a';
+    case 0x00C7: return 'C';
+    case 0x00E7: return 'c';
+    case 0x00C8: case 0x00C9: case 0x00CA: case 0x00CB: return 'E';
+    case 0x00E8: case 0x00E9: case 0x00EA: case 0x00EB: return 'e';
+    case 0x00CC: case 0x00CD: case 0x00CE: case 0x00CF: return 'I';
+    case 0x00EC: case 0x00ED: case 0x00EE: case 0x00EF: return 'i';
+    case 0x00D1: return 'N';
+    case 0x00F1: return 'n';
+    case 0x00D2: case 0x00D3: case 0x00D4: case 0x00D5:
+    case 0x00D6: case 0x00D8: return 'O';
+    case 0x00F2: case 0x00F3: case 0x00F4: case 0x00F5:
+    case 0x00F6: case 0x00F8: return 'o';
+    case 0x00D9: case 0x00DA: case 0x00DB: case 0x00DC: return 'U';
+    case 0x00F9: case 0x00FA: case 0x00FB: case 0x00FC: return 'u';
+    case 0x00DD: return 'Y';
+    case 0x00FD: case 0x00FF: return 'y';
+  }
+  return '?';
+}
+
+/** CONLength() **********************************************/
+/** Count characters in a UTF8 string.                      **/
+/*************************************************************/
+static int CONLength(const char *S)
+{
+  int Count = 0;
+  while(*S)
+  {
+    if((*S & 0xC0) != 0x80) Count++;
+    S++;
+  }
+  return Count;
+}
 
 const unsigned char NormalFont[] =
 {
@@ -503,34 +581,36 @@ void PrintXY(Image *Img,const char *S,int X,int Y,pixel FG,int BG)
 {
   const unsigned char *C;
   pixel *P;
-  int I,J,K,N;
+  int I,J,K,N,U;
 
   X = X<0? 0:X>Img->W-8? Img->W-8:X;
   Y = Y<0? 0:Y>Img->H-8? Img->H-8:Y;
 
-  for(K=X;*S;S++)
+  for(K=X;*S;)
     switch(*S)
     {
       case '\n':
-        K=X;Y+=8;
+        K=X;Y+=8;S++;
         if(Y>Img->H-8) Y=0;
         break;
       default:
-        P=(pixel *)Img->Data+Img->L*Y+K;
+        U = GetUTF8(&S);
+        N = MapUnicode(U);
+        P = (pixel *)Img->Data+Img->L*Y+K;
         if(BG<0)
         {
-          for(C=CurFont+(*S<<3),J=8;J;P+=Img->L,++C,--J)
-            for(I=0,N=(int)*C<<24;N&&(I<8);++I,N<<=1)
-              if(N&0x80000000) P[I]=FG;
+          for(C=CurFont+((unsigned char)N<<3),J=8;J;P+=Img->L,++C,--J)
+            for(I=0,U=(int)*C<<24;U&&(I<8);++I,U<<=1)
+              if(U&0x80000000) P[I]=FG;
         }
         else
         {
-          for(C=CurFont+(*S<<3),J=8;J;P+=Img->L,++C,--J)
-            for(I=0,N=*C;I<8;++I)
-              P[I]=N&(0x80>>I)? FG:BG;
+          for(C=CurFont+((unsigned char)N<<3),J=8;J;P+=Img->L,++C,--J)
+            for(I=0,U=*C;I<8;++I)
+              P[I]=U&(0x80>>I)? FG:BG;
         }
         K+=8;
-        if(X>Img->W-8)
+        if(K>Img->W-8)
         {
           K=0;Y+=8;
           if(Y>Img->H-8) Y=0;
@@ -592,32 +672,37 @@ void CONChar(int X,int Y,char V)
   X  = X<0? 0:X>=VideoW-8? VideoW-8:X;
   Y  = Y<0? 0:Y>=VideoH-8? VideoH-8:Y;
   P  = (pixel *)VideoImg->Data+VideoImg->L*(VideoY+Y)+VideoX+X;
-  for(C=CurFont+(V<<3),J=8;J;P+=VideoImg->L,++C,--J)
+  for(C=CurFont+((unsigned char)V<<3),J=8;J;P+=VideoImg->L,++C,--J)
     for(I=0,K=*C;I<8;++I) P[I]=K&(0x80>>I)? FG:BG;
 }
 
 void CONPrintN(int X,int Y,const char *S,int N)
 {
-  int J,X1;
+  int J,X1,U;
 
   /* Truncate N to accommodate the screen size */
   J = (VideoW>>3)-X;
   N = N<=J? N:J;
 
-  for(;*S&&(Y<(VideoH>>3));++Y,S+=J)
+  for(;*S&&(Y<(VideoH>>3));++Y)
   {
     /* Print N-1 characters */
-    for(X1=X,J=0;!EOLN(S[J])&&(J<N-1);++J) CONChar(X1++,Y,S[J]);
+    for(X1=X,J=0;!EOLN(*S)&&(J<N-1);++J)
+    {
+      U = GetUTF8(&S);
+      CONChar(X1++,Y,MapUnicode(U));
+    }
     /* If string longer than N-1... */
-    if(!EOLN(S[J]))
+    if(!EOLN(*S))
     {
       /* If string longer than N, print dots */
-      CONChar(X1,Y,EOLN(S[J+1])? S[J]:CON_DOTS);
+      U = GetUTF8(&S);
+      CONChar(X1,Y,EOLN(*S)? MapUnicode(U):CON_DOTS);
       /* Skip rest of the line */
-      while(!EOLN(S[J])) ++J;
-      /* Skip control character */
-      if(S[J]) ++J;
+      while(!EOLN(*S)) GetUTF8(&S);
     }
+    /* Skip control character */
+    if(*S) S++;
   } 
 }
 
@@ -868,16 +953,19 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       {
         if((J==Item) && (Offset>0))
         {
+          const char *S = FileSelect? P+1:P;
+          for(I=Offset;I>0;--I) GetUTF8(&S);
+
           if(FileSelect)
           {
             CONChar(X+2,Y+2+J,*P);
             CONChar(X+3,Y+2+J,CON_DOTS);
-            CONPrintN(X+4,Y+2+J,P+1+Offset,W-5);
+            CONPrintN(X+4,Y+2+J,S,W-5);
           }
           else
           {
             CONChar(X+2,Y+2+J,CON_DOTS);
-            CONPrintN(X+3,Y+2+J,P+Offset,W-4);
+            CONPrintN(X+3,Y+2+J,S,W-4);
           }
         }
         else
@@ -1094,7 +1182,7 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
       const char *S = nth(Items,Top+Item+1);
       if(S)
       {
-        int Len = strlen(FileSelect? S+1:S);
+        int Len = CONLength(FileSelect? S+1:S);
         if(Offset < Len - (FileSelect? W-5:W-4)) { Offset++;Draw=1; }
       }
     }
