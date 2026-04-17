@@ -2490,8 +2490,11 @@ byte ChangeDisk(byte N,const char *FileName)
   if(N>=MAXDRIVES) return(0);
 
   /* Update DSKName */
-  if(DSKName[N]) free(DSKName[N]);
-  DSKName[N] = FileName && *FileName? strdup(FileName):0;
+  if(FileName != DSKName[N])
+  {
+    if(DSKName[N]) free(DSKName[N]);
+    DSKName[N] = FileName && *FileName? strdup(FileName):0;
+  }
 
   /* Load state when inserting first disk into drive A: */
   NeedState = !LoadingState && FileName && *FileName && !N && !FDD[N].Data;
@@ -3198,7 +3201,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
   }
 
   /* Try opening file */
-  if(!(F=fopen(FileName,"rb"))) return(0);
+  if(!(F=fmsxFopen(FileName,"rb"))) return(0);
   if(Verbose) printf("Found %s:\n",FileName);
 
   /* Determine size via ftell() or by reading entire [GZIPped] stream */
