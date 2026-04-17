@@ -3075,10 +3075,15 @@ int FindState(const char *Name)
   /* If STAName gets created... */
   if((STAName=MakeFileName(Name,".sta")))
   {
-    /* Try loading state */
-    if(Verbose) printf("Loading state from %s...",STAName);
-    J=LoadSTA(STAName);
-    PRINTRESULT(J);
+    /* Try loading state only if the file exists */
+    FILE *F = fopen(STAName,"rb");
+    if(F)
+    {
+      fclose(F);
+      if(Verbose) printf("Loading state from %s...",STAName);
+      J=LoadSTA(STAName);
+      PRINTRESULT(J);
+    }
   }
 
   /* Generate .CHT cheat file name and try loading it */
