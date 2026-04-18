@@ -84,6 +84,8 @@ static Uint64 NextFrameTime = 0;
 static Uint64 FrameDuration = 0;
 static unsigned int JoyState = 0;
 static unsigned int LastKey = 0;
+static unsigned int HeldKey = 0;
+static Uint32 NextRepeat = 0;
 
 static int Effects = EFF_SCALE | EFF_SAVECPU;
 
@@ -297,6 +299,11 @@ static void HandleSDLEvent(SDL_Event *Event) {
 
                     if (!(Key & CON_RELEASE)) {
                         LastKey = Key;
+                        /* Navigation keys repeat manually */
+                        if ((Key == CON_UP) || (Key == CON_DOWN) || (Key == CON_LEFT) || (Key == CON_RIGHT)) {
+                            HeldKey    = Key;
+                            NextRepeat = SDL_GetTicks() + 400;
+                        }
                         switch (Event->key.keysym.sym) {
                             case SDLK_UP:        JoyState |= BTN_UP; break;
                             case SDLK_DOWN:      JoyState |= BTN_DOWN; break;
@@ -326,6 +333,8 @@ static void HandleSDLEvent(SDL_Event *Event) {
                             case SDLK_ESCAPE:    JoyState |= BTN_EXIT; break;
                         }
                     } else {
+                        /* Key released: stop manual repeat */
+                        if (SDLToKeysym(Event->key.keysym.sym) == HeldKey) HeldKey = 0;
                         switch (Event->key.keysym.sym) {
                             case SDLK_UP:        JoyState &= ~BTN_UP; break;
                             case SDLK_DOWN:      JoyState &= ~BTN_DOWN; break;
