@@ -1017,6 +1017,9 @@ static const char *CONSelector(int X,int Y,int W,int H,pixel FGColor,pixel BGCol
         else if(J>=H-1) { Item=H-4;J=CON_DOWN; }
         else if(CONIsSelectable(nth(Items,Top+J-1))) { Item=J-2;J=CON_OK; }
         else J=0; /* Not selectable */
+
+        /* If something selected, wait until mouse button released */
+        if(J) { ShowVideo(); while(GetMouse()&MSE_BUTTONS) ProcessEvents(1); }
       }
       else
       {

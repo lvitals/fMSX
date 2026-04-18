@@ -276,6 +276,13 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 CursorVisible = 1;
             }
             break;
+        case SDL_MOUSEWHEEL:
+            if (Event->wheel.y > 0) LastKey = CON_UP;
+            else if (Event->wheel.y < 0) LastKey = CON_DOWN;
+            if (Event->wheel.x > 0) LastKey = CON_RIGHT;
+            else if (Event->wheel.x < 0) LastKey = CON_LEFT;
+            if (LastKey) LastMouseTicks = SDL_GetTicks();
+            break;
         case SDL_KEYDOWN:
         case SDL_KEYUP:
             {
@@ -525,10 +532,34 @@ static void HandleSDLEvent(SDL_Event *Event) {
     }
 }
 
+static SDL_Rect GetDstRect(void) {
+    int WW, WH;
+    SDL_GetRendererOutputSize(Renderer, &WW, &WH);
+    SDL_Rect DstRect = { 0, 0, WW, WH };
+
+    if (Effects & EFF_4X3) {
+        float Aspect = 4.0f / 3.0f;
+        if ((float)WW / WH > Aspect) {
+            DstRect.h = WH;
+            DstRect.w = (int)(WH * Aspect);
+            DstRect.x = (WW - DstRect.w) / 2;
+            DstRect.y = 0;
+        } else {
+            DstRect.w = WW;
+            DstRect.h = (int)(WW / Aspect);
+            DstRect.x = 0;
+            DstRect.y = (WH - DstRect.h) / 2;
+        }
+    }
+    return DstRect;
+}
+
 int ProcessEvents(int Wait) {
     SDL_Event Event;
 
-    if (Wait) {
+    if (Wait > 1) {
+        if (SDL_WaitEventTimeout(&Event, Wait)) HandleSDLEvent(&Event);
+    } else if (Wait == 1) {
         if (SDL_WaitEvent(&Event)) HandleSDLEvent(&Event);
     }
 
@@ -593,8 +624,8 @@ int ShowVideo(void) {
         }
     }
 
-    /* Hide cursor if not moved for 2.5 seconds */
-    if (CursorVisible && (SDL_GetTicks() - LastMouseTicks > 2500)) {
+    /* Hide cursor if not moved for 10 seconds (increased from 2.5) */
+    if (CursorVisible && (SDL_GetTicks() - LastMouseTicks > 10000)) {
         SDL_ShowCursor(SDL_DISABLE);
         CursorVisible = 0;
     }
@@ -602,31 +633,8 @@ int ShowVideo(void) {
     SDL_UpdateTexture(Texture, NULL, VideoImg->Data, VideoImg->L * (VideoImg->D >> 3));
     
     SDL_Rect SrcRect = { VideoX, VideoY, VideoW, VideoH };
-    SDL_Rect DstRect = { 0, 0, 0, 0 };
-    int WW, WH;
+    SDL_Rect DstRect = GetDstRect();
 
-    SDL_GetRendererOutputSize(Renderer, &WW, &WH);
-    
-    if (Effects & EFF_4X3) {
-        float Aspect = 4.0f / 3.0f;
-        if ((float)WW / WH > Aspect) {
-            DstRect.h = WH;
-            DstRect.w = (int)(WH * Aspect);
-            DstRect.x = (WW - DstRect.w) / 2;
-            DstRect.y = 0;
-        } else {
-            DstRect.w = WW;
-            DstRect.h = (int)(WW / Aspect);
-            DstRect.x = 0;
-            DstRect.y = (WH - DstRect.h) / 2;
-        }
-    } else {
-        DstRect.w = WW;
-        DstRect.h = WH;
-        DstRect.x = 0;
-        DstRect.y = 0;
-    }
-    
     SDL_RenderSetViewport(Renderer, NULL);
     SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
     SDL_RenderClear(Renderer);
@@ -713,26 +721,48 @@ unsigned int WaitKey(void) {
 }
 
 unsigned int GetMouse(void) {
-    int X, Y, WW, WH;
-    Uint32 Buttons = SDL_GetMouseState(&X, &Y);
+    int MX, MY, WW, WH, RW, RH;
+    if (!SDLWindow || !Renderer) return 0;
+
+    Uint32 Buttons = SDL_GetMouseState(&MX, &MY);
     SDL_GetWindowSize(SDLWindow, &WW, &WH);
-    
-    if (WW > 0 && WH > 0) {
-        X = X * VideoW / WW;
-        Y = Y * VideoH / WH;
+    SDL_GetRendererOutputSize(Renderer, &RW, &RH);
+
+    /* Scale window coordinates to renderer coordinates (for high-DPI) */
+    float X = (float)MX * RW / WW;
+    float Y = (float)MY * RH / WH;
+
+    /* Subtract DstRect offsets and scale to VideoImg coordinates */
+    SDL_Rect DstRect = GetDstRect();
+    if (DstRect.w > 0 && DstRect.h > 0) {
+        X = (X - DstRect.x) * VideoW / DstRect.w;
+        Y = (Y - DstRect.y) * VideoH / DstRect.h;
     }
     
     unsigned int J = 0;
     if (Buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) J |= MSE_LEFT;
     if (Buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) J |= MSE_RIGHT;
 
-    return J | (X & 0xFFFF) | ((Y & 0x3FFF) << 16);
+    return J | (((int)X + VideoX) & 0xFFFF) | ((((int)Y + VideoY) & 0x3FFF) << 16);
 }
 
 unsigned int WaitKeyOrMouse(void) {
     unsigned int J;
-    while (!(J = GetMouse() & MSE_BUTTONS) && !LastKey && !ExitNow) ProcessEvents(1);
-    return J? GetMouse():GetKey();
+    Uint32 Now;
+
+    while (!(J = GetMouse() & MSE_BUTTONS) && !LastKey && !ExitNow) {
+        Now = SDL_GetTicks();
+        if (HeldKey && (Now >= NextRepeat)) {
+            LastKey    = HeldKey;
+            NextRepeat = Now + 50; /* 20Hz repeat */
+            return GetKey();
+        }
+        /* Wait at most until next repeat */
+        int Timeout = HeldKey ? (int)(NextRepeat - Now) : 100;
+        if (Timeout < 0) Timeout = 0;
+        ProcessEvents(Timeout > 0 ? Timeout : 0);
+    }
+    return J ? GetMouse() : GetKey();
 }
 
 pixel *NewImage(Image *Img,int Width,int Height) {
