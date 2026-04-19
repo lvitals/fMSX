@@ -49,12 +49,12 @@ extern "C" {
 #define HREFRESH_240 960         /* 240dot scanline refresh  */
 #define HREFRESH_256 1024        /* 256dot scanline refresh  */
 
-#define CPU_VPERIOD  (VPERIOD_NTSC/6)
-#define CPU_V262     (VPERIOD_NTSC/6)
-#define CPU_V313     (VPERIOD_PAL/6)
-#define CPU_HPERIOD  (HPERIOD/6)
-#define CPU_H240     (HREFRESH_240/6)
-#define CPU_H256     (HREFRESH_256/6)
+#define CPU_VPERIOD  ((VPERIOD_NTSC+3)/6)
+#define CPU_V262     ((VPERIOD_NTSC+3)/6)
+#define CPU_V313     ((VPERIOD_PAL+3)/6)
+#define CPU_HPERIOD  ((HPERIOD+3)/6)
+#define CPU_H240     ((HREFRESH_240+3)/6)
+#define CPU_H256     ((HREFRESH_256+3)/6)
 
 /* Maximum state data size */   
 #define MAX_STASIZE  (0x9000+(RAMPages*0x4000)+(VRAMPages*0x4000))

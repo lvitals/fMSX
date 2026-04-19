@@ -77,7 +77,7 @@ int UseEffects  = EFF_SCALE|EFF_SAVECPU|EFF_VARBPP|EFF_SYNC;
 
 int InMenu;                /* 1: In MenuMSX(), ignore keys   */
 int UseZoom     = 4;       /* Zoom factor (1=no zoom)        */
-int UseSound    = 44100;   /* Audio sampling frequency (Hz)  */
+int UseSound    = 48000;   /* Audio sampling frequency (Hz)  */
 int SyncFreq    = 60;      /* Sync frequency (0=sync off)    */
 int FastForward;           /* Fast-forwarded UPeriod backup  */
 int SndSwitch;             /* Mask of enabled sound channels */
@@ -371,12 +371,18 @@ void PutImage(void)
 }
 
 /** PlayAllSound() *******************************************/
-/** Render and play given number of microseconds of sound.  **/
+/** Render and play given number of CPU cycles of sound.    **/
 /*************************************************************/
-void PlayAllSound(int uSec)
+void PlayAllSound(int Cycles)
 {
-  /* @@@ Twice the argument to avoid skipping */
-  RenderAndPlayAudio(2*uSec*UseSound/1000000);
+  static unsigned long long Error = 0;
+  unsigned long long TotalSamples;
+
+  /* Use 64-bit accumulator to convert cycles to samples without loss */
+  /* TotalSamples = (Cycles * SamplesPerSec) / CyclesPerSec */
+  TotalSamples = (unsigned long long)Cycles * UseSound + Error;
+  RenderAndPlayAudio((unsigned int)(TotalSamples / CPU_CLOCK));
+  Error = TotalSamples % CPU_CLOCK;
 }
 
 /** Joystick() ***********************************************/

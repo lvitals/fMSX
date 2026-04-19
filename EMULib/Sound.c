@@ -842,7 +842,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
           for(I=0;I<Samples;I++,L1+=K)
             Wave[I]+=((L1-K)^(L1+K))&0x8000? 0:(L1&0x8000? 127:-128)*V;
 #else /* SLOW_MELODIC_AUDIO */
-          for(I=0;I<Samples;I++,L1+=K)
+          for(I=0;I<Samples;I++)
           {
             L2 = L1+K;
             /* Realistic Bass: Apply ONLY to PSG chip channels (0,1,2) < 200Hz */
@@ -862,6 +862,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
             }
 
             Wave[I]+=A1*V;
+            L1 = L2;
           }
 #endif /* SLOW_MELODIC_AUDIO */
           WaveCH[J].Count=L1&0xFFFF;
@@ -889,7 +890,7 @@ unsigned int PlayAudio(int *Wave,unsigned int Samples)
   if(J<Samples) Samples=J;
 
   /* Spin until all samples played or WriteAudio() fails */
-  for(K=I=J=0;(K<Samples)&&(I==J);K+=I)
+  for(K=I=J=0;(K<Samples)&&(I==J*2);K+=J)
   {
     /* Compute number of samples to convert (limit by buffer size / 2 channels) */
     J = (sizeof(Buf)/sizeof(sample))/2;
@@ -911,11 +912,11 @@ unsigned int PlayAudio(int *Wave,unsigned int Samples)
 #endif
     }
 
-    /* Play samples */
+    /* Play samples (returns total samples written, i.e., J*2) */
     I = WriteAudio(Buf,J*2);
   }
 
-  /* Return number of samples played */
+  /* Return number of mono samples played */
   return(K);
 }
 

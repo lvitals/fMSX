@@ -2219,10 +2219,12 @@ word LoopZ80(Z80 *R)
   /* Every few scanlines, update sound */
   if(!(ScanLine&0x07))
   {
-    /* Compute number of microseconds */
-    J = (int)(1000000L*(CPU_HPERIOD<<3)/CPU_CLOCK);
+    /* Compute number of microseconds (8 lines) */
+    /* Use 64-bit precision for the calculation */
+    J = (int)(8000000ULL*CPU_HPERIOD/CPU_CLOCK);
 
-    /* Update AY8910 state */
+    /* Update sound chips with cycles converted to microseconds for internal logic */
+    J = (int)((CPU_HPERIOD << 3) * 1000000ULL / CPU_CLOCK);
     Loop8910(&PSG,J);
 
     /* Flush changes to sound channels, only hit drums once a frame */
@@ -2230,8 +2232,8 @@ word LoopZ80(Z80 *R)
     SyncSCC(&SCChip,SCC_FLUSH);
     Sync2413(&OPLL,YM2413_FLUSH);
 
-    /* Render and play all sound now */
-    PlayAllSound(J);
+    /* Render and play all sound now using exact cycles */
+    PlayAllSound(CPU_HPERIOD << 3);
   }
 
   /* Keyboard, sound, and other stuff always runs at line 192    */
