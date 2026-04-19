@@ -120,10 +120,8 @@ static struct
 /** RenderAudio() Variables *******************************************/
 static int SndRate    = 0;        /* Sound rate (0=Off)               */
 static int NoiseGen   = 0x10000;  /* Noise generator seed             */
-static int NoiseOut   = 16;       /* NoiseGen bit used for output     */
-static int NoiseXor   = 14;       /* NoiseGen bit used for XORing     */
 unsigned int MasterSwitch = 0xFFFFFFFF; /* Switches to turn channels on/off */
-int MasterVolume      = 128;      /* Master volume                    */
+int MasterVolume      = 192;      /* Master volume                    */
 
 /** MIDI Logging Variables ********************************************/
 static const char *LogName = 0;   /* MIDI logging file name           */
@@ -264,9 +262,7 @@ void SetChannels(int Volume,int Switch)
 /*************************************************************/
 void SetNoise(int Seed,int OUTBit,int XORBit)
 {
-  NoiseGen = Seed;
-  NoiseOut = OUTBit;
-  NoiseXor = XORBit;
+  NoiseGen = Seed? Seed:0x10000;
 }
 
 /** SetWave() ************************************************/
@@ -810,7 +806,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
           WaveCH[J].Count = L2;
           break;
 
-        case SND_NOISE: /* White Noise */
+        case SND_NOISE: /* White Noise (LFSR precision) */
           /* For high frequencies, recompute volume */
           if(WaveCH[J].Freq<SndRate)
             K=((unsigned int)WaveCH[J].Freq<<16)/SndRate;
@@ -822,15 +818,13 @@ void RenderAudio(int *Wave,unsigned int Samples)
           L1=WaveCH[J].Count;
           for(I=0;I<Samples;I++)
           {
-            /* Use NoiseOut bit for output */
-            Wave[I]+=((NoiseGen>>NoiseOut)&1? 127:-128)*V;
+            /* LFSR feedback for hardware-accurate noise (AY-3-8910) */
+            Wave[I]+=((NoiseGen&1)? 127:-128)*V;
             L1+=K;
             if(L1&0xFFFF0000)
             {
-              /* XOR NoiseOut and NoiseXOR bits and feed them back */
-              NoiseGen=
-                (((NoiseGen>>NoiseOut)^(NoiseGen>>NoiseXor))&1)
-              | ((NoiseGen<<1)&((2<<NoiseOut)-1));
+              /* LFSR logic: XORing bits 0 and 3 */
+              NoiseGen = (NoiseGen>>1) ^ (NoiseGen&1? 0x12000:0);
               L1&=0xFFFF;
             }
           }
@@ -851,12 +845,12 @@ void RenderAudio(int *Wave,unsigned int Samples)
           for(I=0;I<Samples;I++,L1+=K)
           {
             L2 = L1+K;
-            /* Realistic Bass: For all melodic instruments < 200Hz, mix Square and Triangle */
-            if((WaveCH[J].Type != SND_NOISE) && (WaveCH[J].Type != SND_PERIODIC) && (WaveCH[J].Type != SND_WAVE) && (WaveCH[J].Freq < 200))
+            /* Realistic Bass: Apply ONLY to PSG chip channels (0,1,2) < 200Hz */
+            if((J < 3)&&(WaveCH[J].Type==SND_MELODIC)&&(WaveCH[J].Freq<200))
             {
-              A1 = (L1&0x8000? 127:-128);                     /* Square   */
-              A1 += ((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128;     /* Triangle */
-              A1 >>= 1;                                       /* Mixed    */
+              /* 70% Square + 30% Triangle for a punchier and more natural PSG bass */
+              A1 = (L1&0x8000? 89:-89);                       /* Square part */
+              A1 += (((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128)*38/100; /* Triangle part */
             }
             else if(WaveCH[J].Type==SND_TRIANGLE)
             {
@@ -867,8 +861,6 @@ void RenderAudio(int *Wave,unsigned int Samples)
               A1 = L1&0x8000? 127:-128;                       /* Square   */
             }
 
-            if((L1^L2)&0x8000)
-              A1=A1*(0x8000-(L1&0x7FFF)-(L2&0x7FFF))/K;
             Wave[I]+=A1*V;
           }
 #endif /* SLOW_MELODIC_AUDIO */

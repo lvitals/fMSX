@@ -2948,8 +2948,6 @@ int GuessROM(const byte *Buf,int Size)
   for(J=0;J<MAXMAPPERS;++J) ROMCount[J]=1;
   /* Generic 8kB mapper is default */
   ROMCount[MAP_GEN8]+=1;
-  /* ASCII 16kB preferred over ASCII 8kB */
-  ROMCount[MAP_ASCII8]-=1;
 
   /* Count occurences of characteristic addresses */
   for(J=0;J<Size-2;++J)
@@ -2964,12 +2962,12 @@ int GuessROM(const byte *Buf,int Size)
       case 0x800032: ROMCount[MAP_KONAMI4]++;break;
       case 0xA00032: ROMCount[MAP_KONAMI4]++;break;
       case 0x680032: ROMCount[MAP_ASCII8]++;break;
-      case 0x780032: ROMCount[MAP_ASCII8]++;break;
-      case 0x600032: ROMCount[MAP_KONAMI4]++;
-                     ROMCount[MAP_ASCII8]++;
+      case 0x700032: ROMCount[MAP_ASCII8]++;
+                     ROMCount[MAP_KONAMI5]++;
                      ROMCount[MAP_ASCII16]++;
                      break;
-      case 0x700032: ROMCount[MAP_KONAMI5]++;
+      case 0x780032: ROMCount[MAP_ASCII8]++;break;
+      case 0x600032: ROMCount[MAP_KONAMI4]++;
                      ROMCount[MAP_ASCII8]++;
                      ROMCount[MAP_ASCII16]++;
                      break;
@@ -3369,6 +3367,16 @@ int LoadCart(const char *FileName,int Slot,int Type)
       }
       else
       {
+        /* Guess MegaROM type, if requested */
+        if(Type>=MAP_GUESS)
+        {
+          int I=GuessROM(P,Len<<13);
+          if(I>=0) Type=I;
+        }
+
+        /* Show MegaROM type */
+        if(Verbose) printf("guessed %s..",ROMNames[Type]);
+
         /* For MegaROMs, map first 4 pages initially so BIOS can find it */
         MemMap[PS][SS][2]=P;
         MemMap[PS][SS][3]=P+0x2000;
@@ -3376,22 +3384,6 @@ int LoadCart(const char *FileName,int Slot,int Type)
         MemMap[PS][SS][5]=P+0x6000;
       }
       break;
-  }
-
-  /* Show starting address */
-  if(Verbose)
-    printf
-    (
-      "starts at %04Xh..",
-      MemMap[PS][SS][2][2]+256*MemMap[PS][SS][2][3]
-    );
-
-  /* Guess MegaROM mapper type if not given */
-  if((Type>=MAP_GUESS)&&(ROMMask[Slot]+1>4))
-  {
-    Type=GuessROM(P,Len<<13);
-    if(Verbose) printf("guessed %s..",ROMNames[Type]);
-    if(Slot<MAXCARTS) SETROMTYPE(Slot,Type);
   }
 
   /* Save MegaROM type */
@@ -3473,7 +3465,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
 
   /* Done loading cartridge */
   return(Pages);
-  }
+}
 
 /** LoadCHT() ************************************************/
 /** Load cheats from .CHT file. Cheat format is either      **/
