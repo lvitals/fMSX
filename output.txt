@@ -1,0 +1,500 @@
+SDL: Found 1 joystick(s)
+SDL: Opened GameController 0: 8BitDo Micro gamepad (Attached to MSX Port A)
+Allocating 16kB for empty space...
+  Opening MSX2.ROM...fmsxFopen: Failed to open MSX2.ROM in current directory
+OK
+  Opening MSX2EXT.ROM...fmsxFopen: Failed to open MSX2EXT.ROM in current directory
+OK
+  Patching BIOS: 00E1..00E4..00E7..00EA..00ED..00F0..00F3..OK
+  Opening DISK.ROM...fmsxFopen: Failed to open DISK.ROM in current directory
+OK
+Allocating 128kB for RAM...OK
+Allocating 128kB for VRAM...OK
+SetSound: Ch00 Type=0
+SetSound: Ch01 Type=0
+SetSound: Ch02 Type=0
+SetSound: Ch03 Type=2
+SetSound: Ch04 Type=2
+SetSound: Ch05 Type=2
+Sound: Ch00 Freq=0     Vol=0   Type=0
+Sound: Ch01 Freq=0     Vol=0   Type=0
+Sound: Ch02 Freq=0     Vol=0   Type=0
+Sound: Ch03 Freq=0     Vol=0   Type=2
+Sound: Ch04 Freq=0     Vol=0   Type=2
+Sound: Ch05 Freq=0     Vol=0   Type=2
+SetSound: Ch06 Type=0
+SetSound: Ch07 Type=0
+SetSound: Ch08 Type=0
+SetSound: Ch09 Type=0
+SetSound: Ch10 Type=0
+SetSound: Ch11 Type=0
+SetSound: Ch12 Type=0
+SetSound: Ch13 Type=0
+SetSound: Ch14 Type=0
+SetSound: Ch15 Type=0
+SetSound: Ch16 Type=0
+SetSound: Ch17 Type=0
+SetSound: Ch18 Type=0
+SetSound: Ch19 Type=0
+SetSound: Ch11 Type=346
+SetSound: Ch12 Type=346
+SetSound: Ch13 Type=346
+SetSound: Ch14 Type=346
+SetSound: Ch15 Type=346
+SetSound: Ch16 Type=346
+SetSound: Ch17 Type=346
+SetSound: Ch18 Type=346
+SetSound: Ch19 Type=346
+Sound: Ch11 Freq=0     Vol=0   Type=90
+Sound: Ch12 Freq=0     Vol=0   Type=90
+Sound: Ch13 Freq=0     Vol=0   Type=90
+Sound: Ch14 Freq=0     Vol=0   Type=90
+Sound: Ch15 Freq=0     Vol=0   Type=90
+Sound: Ch16 Freq=0     Vol=0   Type=90
+Sound: Ch17 Freq=0     Vol=0   Type=90
+Sound: Ch18 Freq=0     Vol=0   Type=90
+Sound: Ch19 Freq=0     Vol=0   Type=90
+Drum: Type=298 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=305 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=303 Force=0
+SetSound: Ch26 Type=1
+Sound: Ch26 Freq=100   Vol=0   Type=1
+Drum: Type=296 Force=0
+SetSound: Ch25 Type=2
+Sound: Ch25 Freq=200   Vol=0   Type=2
+Drum: Type=292 Force=0
+SetSound: Ch24 Type=1
+Sound: Ch24 Freq=60    Vol=0   Type=1
+Loading DEFAULT.FNT font...using built-in font...OK
+Loading optional ROMs: fmsxFopen: Failed to open CMOS.ROM in current directory
+CMOS.ROM..fmsxFopen: Failed to open KANJI.ROM in current directory
+KANJI.ROM..fmsxFopen: Failed to open RS232.ROM in current directory
+fmsxFopen: Failed to open BIOS/RS232.ROM
+fmsxFopen: Failed to open /usr/local/share/fmsx/RS232.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/RS232.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/BIOS/RS232.ROM
+OK
+fmsxFopen: Failed to open MSXDOS2.ROM in current directory
+Found MSXDOS2.ROM:
+  Cartridge C: 64kB NORMAL ROM..fmsxFopen: Failed to open MSXDOS2.ROM in current directory
+starts at FFFFh..SetSound: Ch00 Type=0
+SetSound: Ch01 Type=0
+SetSound: Ch02 Type=0
+SetSound: Ch03 Type=2
+SetSound: Ch04 Type=2
+SetSound: Ch05 Type=2
+Sound: Ch00 Freq=0     Vol=0   Type=0
+Sound: Ch01 Freq=0     Vol=0   Type=0
+Sound: Ch02 Freq=0     Vol=0   Type=0
+Sound: Ch03 Freq=0     Vol=0   Type=2
+Sound: Ch04 Freq=0     Vol=0   Type=2
+Sound: Ch05 Freq=0     Vol=0   Type=2
+SetSound: Ch06 Type=0
+SetSound: Ch07 Type=0
+SetSound: Ch08 Type=0
+SetSound: Ch09 Type=0
+SetSound: Ch10 Type=0
+SetSound: Ch11 Type=0
+SetSound: Ch12 Type=0
+SetSound: Ch13 Type=0
+SetSound: Ch14 Type=0
+SetSound: Ch15 Type=0
+SetSound: Ch16 Type=0
+SetSound: Ch17 Type=0
+SetSound: Ch18 Type=0
+SetSound: Ch19 Type=0
+SetSound: Ch11 Type=346
+SetSound: Ch12 Type=346
+SetSound: Ch13 Type=346
+SetSound: Ch14 Type=346
+SetSound: Ch15 Type=346
+SetSound: Ch16 Type=346
+SetSound: Ch17 Type=346
+SetSound: Ch18 Type=346
+SetSound: Ch19 Type=346
+Sound: Ch11 Freq=0     Vol=0   Type=90
+Sound: Ch12 Freq=0     Vol=0   Type=90
+Sound: Ch13 Freq=0     Vol=0   Type=90
+Sound: Ch14 Freq=0     Vol=0   Type=90
+Sound: Ch15 Freq=0     Vol=0   Type=90
+Sound: Ch16 Freq=0     Vol=0   Type=90
+Sound: Ch17 Freq=0     Vol=0   Type=90
+Sound: Ch18 Freq=0     Vol=0   Type=90
+Sound: Ch19 Freq=0     Vol=0   Type=90
+Drum: Type=298 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=305 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=303 Force=0
+SetSound: Ch26 Type=1
+Sound: Ch26 Freq=100   Vol=0   Type=1
+Drum: Type=296 Force=0
+SetSound: Ch25 Type=2
+Sound: Ch25 Freq=200   Vol=0   Type=2
+Drum: Type=292 Force=0
+SetSound: Ch24 Type=1
+Sound: Ch24 Freq=60    Vol=0   Type=1
+OK
+fmsxFopen: Failed to open PAINTER.ROM in current directory
+Found PAINTER.ROM:
+  Cartridge D: 64kB NORMAL ROM..fmsxFopen: Failed to open PAINTER.ROM in current directory
+starts at 401Dh..SetSound: Ch00 Type=0
+SetSound: Ch01 Type=0
+SetSound: Ch02 Type=0
+SetSound: Ch03 Type=2
+SetSound: Ch04 Type=2
+SetSound: Ch05 Type=2
+Sound: Ch00 Freq=0     Vol=0   Type=0
+Sound: Ch01 Freq=0     Vol=0   Type=0
+Sound: Ch02 Freq=0     Vol=0   Type=0
+Sound: Ch03 Freq=0     Vol=0   Type=2
+Sound: Ch04 Freq=0     Vol=0   Type=2
+Sound: Ch05 Freq=0     Vol=0   Type=2
+SetSound: Ch06 Type=0
+SetSound: Ch07 Type=0
+SetSound: Ch08 Type=0
+SetSound: Ch09 Type=0
+SetSound: Ch10 Type=0
+SetSound: Ch11 Type=0
+SetSound: Ch12 Type=0
+SetSound: Ch13 Type=0
+SetSound: Ch14 Type=0
+SetSound: Ch15 Type=0
+SetSound: Ch16 Type=0
+SetSound: Ch17 Type=0
+SetSound: Ch18 Type=0
+SetSound: Ch19 Type=0
+SetSound: Ch11 Type=346
+SetSound: Ch12 Type=346
+SetSound: Ch13 Type=346
+SetSound: Ch14 Type=346
+SetSound: Ch15 Type=346
+SetSound: Ch16 Type=346
+SetSound: Ch17 Type=346
+SetSound: Ch18 Type=346
+SetSound: Ch19 Type=346
+Sound: Ch11 Freq=0     Vol=0   Type=90
+Sound: Ch12 Freq=0     Vol=0   Type=90
+Sound: Ch13 Freq=0     Vol=0   Type=90
+Sound: Ch14 Freq=0     Vol=0   Type=90
+Sound: Ch15 Freq=0     Vol=0   Type=90
+Sound: Ch16 Freq=0     Vol=0   Type=90
+Sound: Ch17 Freq=0     Vol=0   Type=90
+Sound: Ch18 Freq=0     Vol=0   Type=90
+Sound: Ch19 Freq=0     Vol=0   Type=90
+Drum: Type=298 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=305 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=303 Force=0
+SetSound: Ch26 Type=1
+Sound: Ch26 Freq=100   Vol=0   Type=1
+Drum: Type=296 Force=0
+SetSound: Ch25 Type=2
+Sound: Ch25 Freq=200   Vol=0   Type=2
+Drum: Type=292 Force=0
+SetSound: Ch24 Type=1
+Sound: Ch24 Freq=60    Vol=0   Type=1
+OK
+fmsxFopen: Failed to open FMPAC.ROM in current directory
+Found FMPAC.ROM:
+  Cartridge E: 64kB NORMAL ROM..fmsxFopen: Failed to open FMPAC.ROM in current directory
+starts at FFFFh..got 16kB SRAM..SetSound: Ch00 Type=0
+SetSound: Ch01 Type=0
+SetSound: Ch02 Type=0
+SetSound: Ch03 Type=2
+SetSound: Ch04 Type=2
+SetSound: Ch05 Type=2
+Sound: Ch00 Freq=0     Vol=0   Type=0
+Sound: Ch01 Freq=0     Vol=0   Type=0
+Sound: Ch02 Freq=0     Vol=0   Type=0
+Sound: Ch03 Freq=0     Vol=0   Type=2
+Sound: Ch04 Freq=0     Vol=0   Type=2
+Sound: Ch05 Freq=0     Vol=0   Type=2
+SetSound: Ch06 Type=0
+SetSound: Ch07 Type=0
+SetSound: Ch08 Type=0
+SetSound: Ch09 Type=0
+SetSound: Ch10 Type=0
+SetSound: Ch11 Type=0
+SetSound: Ch12 Type=0
+SetSound: Ch13 Type=0
+SetSound: Ch14 Type=0
+SetSound: Ch15 Type=0
+SetSound: Ch16 Type=0
+SetSound: Ch17 Type=0
+SetSound: Ch18 Type=0
+SetSound: Ch19 Type=0
+SetSound: Ch11 Type=346
+SetSound: Ch12 Type=346
+SetSound: Ch13 Type=346
+SetSound: Ch14 Type=346
+SetSound: Ch15 Type=346
+SetSound: Ch16 Type=346
+SetSound: Ch17 Type=346
+SetSound: Ch18 Type=346
+SetSound: Ch19 Type=346
+Sound: Ch11 Freq=0     Vol=0   Type=90
+Sound: Ch12 Freq=0     Vol=0   Type=90
+Sound: Ch13 Freq=0     Vol=0   Type=90
+Sound: Ch14 Freq=0     Vol=0   Type=90
+Sound: Ch15 Freq=0     Vol=0   Type=90
+Sound: Ch16 Freq=0     Vol=0   Type=90
+Sound: Ch17 Freq=0     Vol=0   Type=90
+Sound: Ch18 Freq=0     Vol=0   Type=90
+Sound: Ch19 Freq=0     Vol=0   Type=90
+Drum: Type=298 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=305 Force=0
+SetSound: Ch27 Type=2
+Sound: Ch27 Freq=400   Vol=0   Type=2
+Drum: Type=303 Force=0
+SetSound: Ch26 Type=1
+Sound: Ch26 Freq=100   Vol=0   Type=1
+Drum: Type=296 Force=0
+SetSound: Ch25 Type=2
+Sound: Ch25 Freq=200   Vol=0   Type=2
+Drum: Type=292 Force=0
+SetSound: Ch24 Type=1
+Sound: Ch24 Freq=60    Vol=0   Type=1
+OK
+fmsxFopen: Failed to open GMASTER2.ROM in current directory
+fmsxFopen: Failed to open BIOS/GMASTER2.ROM
+fmsxFopen: Failed to open /usr/local/share/fmsx/GMASTER2.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/GMASTER2.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/BIOS/GMASTER2.ROM
+fmsxFopen: Failed to open GMASTER.ROM in current directory
+fmsxFopen: Failed to open BIOS/GMASTER.ROM
+fmsxFopen: Failed to open /usr/local/share/fmsx/GMASTER.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/GMASTER.ROM
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/BIOS/GMASTER.ROM
+Attempting to load user cart 0: ALESTE.ROM
+fmsxFopen: Failed to open Ä°/«U in current directory
+fmsxFopen: Failed to open BIOS/Ä°/«U
+fmsxFopen: Failed to open /usr/local/share/fmsx/Ä°/«U
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/Ä°/«U
+fmsxFopen: Failed to open /home/leandro/workspaces/fMSX/BIOS/Ä°/«U
+Attempting to load user cart 1: (null)
+Redirecting printer output to STDOUT...OK
+Inserting (null) into drive A
+Inserting (null) into drive B
+Initializing VDP, FDC, PSG, OPLL, SCC, and CPU...
+  Attached normal joystick to joystick port A
+  Attached nothing to joystick port B
+  228 CPU cycles per HBlank
+  59736 CPU cycles per VBlank
+  262 scanlines
+RUNNING ROM CODE...
+I/O: Write to unknown PORT[BBh]=08h
+Drum: Type=0 Force=255
+MEMORY: Bad write (0:2:BF00h) = 00h
+MEMORY: Bad write (0:2:BF00h) = FFh
+ROM-MAPPER C: 16kB ROM page #0 at 3:0:8000h
+ROM-MAPPER C: 16kB ROM page #3 at 3:0:8000h
+I/O: Write to unknown PORT[90h]=FFh
+Sound: Ch00 Freq=0     Vol=0   Type=0
+Sound: Ch02 Freq=0     Vol=0   Type=0
+Sound: Ch03 Freq=873   Vol=0   Type=2
+Sound: Ch04 Freq=873   Vol=0   Type=2
+Sound: Ch05 Freq=873   Vol=0   Type=2
+Sound: Ch03 Freq=0     Vol=0   Type=2
+Sound: Ch04 Freq=0     Vol=0   Type=2
+Sound: Ch05 Freq=0     Vol=0   Type=2
+I/O: Write to unknown PORT[F7h]=D3h
+I/O: Write to unknown PORT[F8h]=00h
+I/O: Read from unknown PORT[C0h]
+I/O: Read from unknown PORT[F7h]
+I/O: Read from unknown PORT[C8h]
+I/O: Read from unknown PORT[BBh]
+I/O: Write to unknown PORT[F5h]=FEh
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,96),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,97),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,98),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,99),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,100),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,101),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,102),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,103),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,104),0 [422,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,105),0 [68,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(113,105),3 [29,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(141,105),2 [29,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(142,105),0 [29,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(170,105),2 [29,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(171,105),3 [28,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(199,105),0 [47,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(245,105),2 [47,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(246,105),3 [104,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(349,105),2 [104,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(350,105),0 [43,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(392,105),2 [43,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(393,105),3 [40,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(433,105),0 [34,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,106),0 [68,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(112,106),2 [68,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(113,106),3 [29,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(142,106),0 [28,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(170,106),3 [30,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(199,106),2 [30,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(200,106),0 [42,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(241,106),2 [42,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(242,106),3 [109,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(350,106),2 [109,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(351,106),0 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(391,106),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(392,106),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(432,106),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(433,106),0 [34,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,107),0 [67,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(112,107),3 [31,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(142,107),2 [31,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(143,107),0 [27,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(169,107),2 [27,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(170,107),3 [30,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(200,107),0 [38,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(237,107),2 [38,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(238,107),3 [115,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(352,107),2 [115,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(353,107),0 [37,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(389,107),2 [37,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(390,107),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(430,107),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(431,107),0 [36,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,108),0 [67,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(111,108),2 [67,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(112,108),3 [31,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(143,108),0 [26,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(169,108),3 [32,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(200,108),2 [32,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(201,108),0 [34,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(234,108),2 [34,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(235,108),3 [119,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(353,108),2 [119,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(354,108),0 [35,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(388,108),2 [35,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(389,108),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(429,108),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(430,108),0 [37,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,109),0 [66,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(111,109),3 [33,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(143,109),2 [33,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(144,109),0 [25,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(168,109),2 [25,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(169,109),3 [32,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(201,109),0 [31,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(231,109),2 [31,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(232,109),3 [124,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(355,109),2 [124,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(356,109),0 [31,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(386,109),2 [31,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(387,109),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(427,109),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(428,109),0 [39,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,110),0 [66,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(110,110),2 [66,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(111,110),3 [33,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(144,110),0 [24,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(168,110),3 [34,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(201,110),2 [34,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(202,110),0 [27,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(228,110),2 [27,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(229,110),3 [128,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(356,110),2 [128,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(357,110),0 [29,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(385,110),2 [29,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(386,110),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(426,110),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(427,110),0 [40,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,111),0 [65,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(110,111),3 [35,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(144,111),2 [35,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(145,111),0 [23,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(167,111),2 [23,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(168,111),3 [34,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(202,111),0 [25,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(226,111),2 [25,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(227,111),3 [132,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(358,111),2 [132,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(359,111),0 [26,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(384,111),2 [26,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(385,111),3 [40,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(424,111),2 [40,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(425,111),0 [42,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,112),0 [65,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(109,112),2 [65,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(110,112),3 [35,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(145,112),0 [22,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(167,112),3 [36,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(202,112),2 [36,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(203,112),0 [23,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(225,112),2 [23,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(226,112),3 [134,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(359,112),2 [134,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(360,112),0 [23,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(382,112),2 [23,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(383,112),3 [41,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(423,112),2 [41,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(424,112),0 [43,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,113),0 [64,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(109,113),3 [37,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(145,113),2 [37,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(146,113),0 [21,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(166,113),2 [21,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(167,113),3 [36,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(203,113),0 [21,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(223,113),2 [21,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(224,113),3 [138,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(361,113),2 [138,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(362,113),0 [20,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(381,113),2 [20,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(382,113),3 [40,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(421,113),2 [40,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(422,113),0 [45,0]
+I/O: Read from unknown PORT[BAh]
+V9938: Opcode 70h  LINE-SET  (0,0)->(45,114),0 [64,0]
+V9938: Opcode 50h  PSET-SET  (0,0)->(108,114),2 [64,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(109,114),3 [37,0]
+V9938: Opcode 70h  LINE-SET  (0,0)->(146,114),0 [20,0]

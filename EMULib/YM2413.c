@@ -227,8 +227,8 @@ void Write2413(register YM2413 *D,register byte R,register byte V)
       /* Register any volume changes */
       if((V^D->R[R])&0x0F)
       {
-        /* Set channel volume (attenuated to ~70%) */
-        D->Volume[C]=180*(~V&0x0F)/15;
+        /* Set channel volume (full volume) */
+        D->Volume[C]=255*(~V&0x0F)/15;
         /* Mark channel as changed */
         D->Changed|=1<<C;
       }

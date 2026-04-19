@@ -110,6 +110,10 @@ static struct
   { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
   { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
   { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
   { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 }
 };
 
@@ -118,7 +122,7 @@ static int SndRate    = 0;        /* Sound rate (0=Off)               */
 static int NoiseGen   = 0x10000;  /* Noise generator seed             */
 static int NoiseOut   = 16;       /* NoiseGen bit used for output     */
 static int NoiseXor   = 14;       /* NoiseGen bit used for XORing     */
-int MasterSwitch      = 0xFFFFFF; /* Switches to turn channels on/off */
+unsigned int MasterSwitch = 0xFFFFFFFF; /* Switches to turn channels on/off */
 int MasterVolume      = 128;      /* Master volume                    */
 
 /** MIDI Logging Variables ********************************************/
@@ -201,6 +205,16 @@ void Drum(int Type,int Force)
 
   /* Log drum to MIDI file */
   MIDIDrum(Type,Force);
+
+  /* Use channels 24-27 for percussive sounds */
+  int Ch = -1;
+  switch(Type & 0x7F) {
+    case 36: Ch = 24; SetSound(Ch, SND_TRIANGLE); Sound(Ch, 60, Force); break; // Bass Drum
+    case 40: Ch = 25; SetSound(Ch, SND_NOISE);    Sound(Ch, 200, Force); break; // Snare
+    case 47: Ch = 26; SetSound(Ch, SND_TRIANGLE); Sound(Ch, 100, Force); break; // Tom
+    case 42:
+    case 49: Ch = 27; SetSound(Ch, SND_NOISE);    Sound(Ch, 400, Force); break; // Hat/Cymbal
+  }
 }
 
 /** SetSound() ***********************************************/
@@ -240,7 +254,7 @@ void SetChannels(int Volume,int Switch)
 
   /* Modify wave master settings */ 
   MasterVolume = Volume;
-  MasterSwitch = Switch&((1<<SND_CHANNELS)-1);
+  MasterSwitch = (unsigned int)Switch;
 }
 
 /** SetNoise() ***********************************************/
@@ -671,7 +685,7 @@ unsigned int InitSound(unsigned int Rate,unsigned int Latency)
   if(!Rate) { SndRate=0;return(0); }
 
   /* Done */
-  SetChannels(MasterVolume,0xFFFFFF);
+  SetChannels(MasterVolume,0xFFFFFFFF);
   return(SndRate=Rate);
 }
 
@@ -712,7 +726,19 @@ void RenderAudio(int *Wave,unsigned int Samples)
 
   /* Waveform generator */
   for(J=0;J<SND_CHANNELS;J++)
+  {
+    /* Decay for percussion channels 24-27 */
+    if((J>=24)&&(J<=27)&&(WaveCH[J].Volume>0))
+    {
+      I = (Samples*256)/(SndRate/10); /* 100ms decay */
+      WaveCH[J].Volume = WaveCH[J].Volume>I? WaveCH[J].Volume-I:0;
+    }
+
     if(WaveCH[J].Freq&&(V=WaveCH[J].Volume)&&(MasterSwitch&(1<<J)))
+    {
+      /* Boost percussion channels to punch through the track */
+      if((J>=24)&&(J<=27)) V<<=1;
+
       switch(WaveCH[J].Type)
       {
         case SND_WAVE: /* Custom Waveform */
@@ -825,7 +851,22 @@ void RenderAudio(int *Wave,unsigned int Samples)
           for(I=0;I<Samples;I++,L1+=K)
           {
             L2 = L1+K;
-            A1 = L1&0x8000? 127:-128;
+            /* Realistic Bass: For all melodic instruments < 200Hz, mix Square and Triangle */
+            if((WaveCH[J].Type != SND_NOISE) && (WaveCH[J].Type != SND_PERIODIC) && (WaveCH[J].Type != SND_WAVE) && (WaveCH[J].Freq < 200))
+            {
+              A1 = (L1&0x8000? 127:-128);                     /* Square   */
+              A1 += ((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128;     /* Triangle */
+              A1 >>= 1;                                       /* Mixed    */
+            }
+            else if(WaveCH[J].Type==SND_TRIANGLE)
+            {
+              A1 = ((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128;      /* Triangle */
+            }
+            else
+            {
+              A1 = L1&0x8000? 127:-128;                       /* Square   */
+            }
+
             if((L1^L2)&0x8000)
               A1=A1*(0x8000-(L1&0x7FFF)-(L2&0x7FFF))/K;
             Wave[I]+=A1*V;
@@ -834,6 +875,8 @@ void RenderAudio(int *Wave,unsigned int Samples)
           WaveCH[J].Count=L1&0xFFFF;
           break;
       }
+    }
+  }
 }
 
 /** PlayAudio() **********************************************/

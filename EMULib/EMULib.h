@@ -344,7 +344,7 @@ unsigned int GetTotalAudio(void);
 #define MSE_YPOS     0x3FFF0000
 #define MSE_XPOS     0x0000FFFF
 
-#define SND_CHANNELS 24
+#define SND_CHANNELS 32
 
 #ifdef __cplusplus
 }

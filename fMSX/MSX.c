@@ -574,7 +574,10 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   { if(Verbose) printf("Failed changing to '%s' directory!\n",WorkDir); }
 
   /* For each user cartridge slot, try loading cartridge */
-  for(J=0;J<MAXCARTS;++J) LoadCart(ROMName[J],J,ROMGUESS(J)|ROMTYPE(J));
+  for(J=0;J<MAXCARTS;++J) {
+    if (Verbose) printf("Attempting to load user cart %d: %s\n", J, ROMName[J]? ROMName[J]:"(null)");
+    LoadCart(ROMName[J],J,ROMGUESS(J)|ROMTYPE(J));
+  }
 
   /* Open stream for a printer */
   if(Verbose)
@@ -3132,13 +3135,6 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* Slot number must be valid */
   if((Slot<0)||(Slot>=MAXSLOTS)) return(0);
 
-  /* Update ROMName */
-  if(Slot<MAXCARTS)
-  {
-    if(ROMName[Slot]) free(ROMName[Slot]);
-    ROMName[Slot] = FileName && *FileName? strdup(FileName):0;
-  }
-
   /* Find primary/secondary slots */
   for(PS=0;PS<4;++PS)
   {
@@ -3183,6 +3179,12 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* If ejecting cartridge... */
   if(!FileName)
   {
+    if(Slot<MAXCARTS)
+    {
+      if(ROMName[Slot]) free(ROMName[Slot]);
+      ROMName[Slot] = 0;
+    }
+
     if(ROMData[Slot])
     {
       /* Free memory if present */
@@ -3192,7 +3194,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
       /* Set memory map to dummy RAM */
       for(C1=0;C1<8;++C1) MemMap[PS][SS][C1]=EmptyRAM;
       /* Restart MSX */
-      ResetMSX(Mode,RAMPages,VRAMPages);
+      if(!LoadingState) ResetMSX(Mode,RAMPages,VRAMPages);
       /* Cartridge ejected */
       if(Verbose) printf("Ejected cartridge from slot %c\n",Slot+'A');
     }
@@ -3205,8 +3207,21 @@ int LoadCart(const char *FileName,int Slot,int Type)
   if(!(F=fmsxFopen(FileName,"rb"))) return(0);
   if(Verbose) printf("Found %s:\n",FileName);
 
+  /* Update ROMName */
+  if(Slot<MAXCARTS)
+  {
+    if(ROMName[Slot] && (ROMName[Slot]!=FileName)) free(ROMName[Slot]);
+    if(ROMName[Slot]!=FileName) ROMName[Slot] = strdup(FileName);
+  }
+
   /* Determine size via ftell() or by reading entire [GZIPped] stream */
-  if(!fseek(F,0,SEEK_END)) Len=ftell(F);
+  C1 = fseek(F,0,SEEK_END);
+#ifdef ZLIB
+  /* gzseek returns the offset, fseek returns 0 */
+  if(C1 >= 0) Len=gztell((gzFile)F);
+#else
+  if(!C1) Len=ftell(F);
+#endif
   else
   {
     /* Read file in 16kB increments */
@@ -3232,12 +3247,14 @@ int LoadCart(const char *FileName,int Slot,int Type)
 
   /* Maybe this is a flat 64kB ROM? */
   if((C1!='A')||(C2!='B'))
+  {
     if(fseek(F,0x4000,SEEK_SET)>=0)
     {
       C1=fgetc(F);
       C2=fgetc(F);
       ROM64=(C1=='A')&&(C2=='B');
     }
+  }
 
   /* Maybe it is the last 16kB page that contains "AB" signature? */
   if((Len>=2)&&((C1!='A')||(C2!='B')))
@@ -3250,7 +3267,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* If we can't find "AB" signature, drop out */     
   if((C1!='A')||(C2!='B'))
   {
-    if(Verbose) puts("  Not a valid cartridge ROM");
+    if(Verbose) printf("  %s: Not a valid cartridge ROM\n", FileName);
     fclose(F);
     return(0);
   }
@@ -3260,16 +3277,17 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* Done with the file */
   fclose(F);
 
+  /* Assign ROMMask for MegaROMs */
+  ROMMask[Slot]=!ROM64&&(Len>4)? (Pages-1):0x00;
+
   /* Show ROM type and size */
   if(Verbose)
     printf
     (
       "%dkB %s ROM..",Len*8,
-      ROM64||(Len<=0x8000)? "NORMAL":Type>=MAP_GUESS? "UNKNOWN":ROMNames[Type]
+      ROM64||(Len<=4)? "NORMAL":Type>=MAP_GUESS? "MegaROM":ROMNames[Type]
     );
 
-  /* Assign ROMMask for MegaROMs */
-  ROMMask[Slot]=!ROM64&&(Len>4)? (Pages-1):0x00;
   /* Allocate space for the ROM */
   ROMData[Slot]=P=GetMemory(Pages<<13);
   if(!P) { PRINTFAILED;return(0); }
@@ -3348,6 +3366,14 @@ int LoadCart(const char *FileName,int Slot,int Type)
         MemMap[PS][SS][5]=P+0xA000;
         MemMap[PS][SS][6]=P+0xC000;
         MemMap[PS][SS][7]=P+0xE000;
+      }
+      else
+      {
+        /* For MegaROMs, map first 4 pages initially so BIOS can find it */
+        MemMap[PS][SS][2]=P;
+        MemMap[PS][SS][3]=P+0x2000;
+        MemMap[PS][SS][4]=P+0x4000;
+        MemMap[PS][SS][5]=P+0x6000;
       }
       break;
   }
