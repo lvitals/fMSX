@@ -11,10 +11,14 @@
 /**     commercially. Please, notify me, if you make any    **/
 /**     changes to this file.                               **/
 /*************************************************************/
-#include "Sound.h"
 
+#define SLOW_MELODIC_AUDIO
+
+#include "Sound.h"
 #include <stdio.h>
 #include <string.h>
+
+extern unsigned char Verbose;
 
 #if defined(UNIX) || defined(MAEMO) || defined(STMP3700) || defined(NXC2600) || defined(ANDROID)
 #include <unistd.h>
@@ -95,30 +99,28 @@ static struct
   int Count;                      /* Phase counter                    */
 } WaveCH[SND_CHANNELS] =
 {
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 },
-  { SND_MELODIC,0,0,0,0,0,0,0 }
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 },
+  { SND_MELODIC,0,0,0,0,0,0,0 }, { SND_MELODIC,0,0,0,0,0,0,0 }
 };
 
 /** RenderAudio() Variables *******************************************/
 static int SndRate    = 0;        /* Sound rate (0=Off)               */
 static int NoiseGen   = 0x10000;  /* Noise generator seed             */
-static int NoiseOut   = 16;       /* NoiseGen bit used for output     */
-static int NoiseXor   = 14;       /* NoiseGen bit used for XORing     */
-int MasterSwitch      = 0xFFFF;   /* Switches to turn channels on/off */
+unsigned int MasterSwitch = 0xFFFFFFFF; /* Switches to turn channels on/off */
 int MasterVolume      = 192;      /* Master volume                    */
 
 /** MIDI Logging Variables ********************************************/
@@ -142,7 +144,7 @@ static void WriteTempo(int Freq);
 /** Make MIDI channel#10 last, as it is normally used for   **/
 /** percussion instruments only and doesn't sound nice.     **/
 /*************************************************************/
-#define SHIFT(Ch) (Ch==15? 9:Ch>8? Ch+1:Ch)
+#define SHIFT(Ch) (Ch>=15? 9:Ch>8? Ch+1:Ch)
 
 /** GetSndRate() *********************************************/
 /** Get current sampling rate used for synthesis.           **/
@@ -160,6 +162,10 @@ void Sound(int Channel,int Freq,int Volume)
   if((Channel<0)||(Channel>=SND_CHANNELS)) return;
   Freq   = Freq<0? 0:Freq;
   Volume = Volume<0? 0:Volume>255? 255:Volume;
+
+  if(Verbose & 0x20)
+    printf("Sound: Ch%02d Freq=%-5d Vol=%-3d Type=%d\n",
+      Channel, Freq, Volume, WaveCH[Channel].Type);
 
   /* Modify channel parameters */ 
   WaveCH[Channel].Volume = Volume;
@@ -189,11 +195,24 @@ void Drum(int Type,int Force)
   /* Drum force has to be valid */
   Force = Force<0? 0:Force>255? 255:Force;
 
+  if(Verbose & 0x20)
+    printf("Drum: Type=%d Force=%d\n", Type, Force);
+
   /* Call sound driver if present */
   if(SndDriver.Drum) (*SndDriver.Drum)(Type,Force);
 
   /* Log drum to MIDI file */
   MIDIDrum(Type,Force);
+
+  /* Use channels 24-27 for percussive sounds */
+  int Ch = -1;
+  switch(Type & 0x7F) {
+    case 36: Ch = 24; SetSound(Ch, SND_TRIANGLE); Sound(Ch, 60, Force); break; // Bass Drum
+    case 40: Ch = 25; SetSound(Ch, SND_NOISE);    Sound(Ch, 200, Force); break; // Snare
+    case 47: Ch = 26; SetSound(Ch, SND_TRIANGLE); Sound(Ch, 100, Force); break; // Tom
+    case 42:
+    case 49: Ch = 27; SetSound(Ch, SND_NOISE);    Sound(Ch, 400, Force); break; // Hat/Cymbal
+  }
 }
 
 /** SetSound() ***********************************************/
@@ -205,8 +224,11 @@ void SetSound(int Channel,int Type)
   /* Channel has to be valid */
   if((Channel<0)||(Channel>=SND_CHANNELS)) return;
 
-  /* Set wave channel type */
-  WaveCH[Channel].Type = Type;
+  if(Verbose & 0x20)
+    printf("SetSound: Ch%02d Type=%d\n", Channel, Type);
+
+  /* Set wave channel type (strip MIDI flag and keep internal synthesis type) */
+  WaveCH[Channel].Type = Type & (SND_MIDI - 1);
 
   /* Call sound driver if present */
   if(SndDriver.SetSound) (*SndDriver.SetSound)(Channel,Type);
@@ -230,7 +252,7 @@ void SetChannels(int Volume,int Switch)
 
   /* Modify wave master settings */ 
   MasterVolume = Volume;
-  MasterSwitch = Switch&((1<<SND_CHANNELS)-1);
+  MasterSwitch = (unsigned int)Switch;
 }
 
 /** SetNoise() ***********************************************/
@@ -240,9 +262,7 @@ void SetChannels(int Volume,int Switch)
 /*************************************************************/
 void SetNoise(int Seed,int OUTBit,int XORBit)
 {
-  NoiseGen = Seed;
-  NoiseOut = OUTBit;
-  NoiseXor = XORBit;
+  NoiseGen = Seed? Seed:0x10000;
 }
 
 /** SetWave() ************************************************/
@@ -644,7 +664,7 @@ unsigned int InitSound(unsigned int Rate,unsigned int Latency)
   /* Reset sound parameters */
   for(I=0;I<SND_CHANNELS;I++)
   {
-    /* NOTICE: Preserving Type value! */
+    WaveCH[I].Type   = SND_MELODIC;
     WaveCH[I].Count  = 0;
     WaveCH[I].Volume = 0;
     WaveCH[I].Freq   = 0;
@@ -661,7 +681,7 @@ unsigned int InitSound(unsigned int Rate,unsigned int Latency)
   if(!Rate) { SndRate=0;return(0); }
 
   /* Done */
-  SetChannels(MasterVolume,MasterSwitch);
+  SetChannels(MasterVolume,0xFFFFFFFF);
   return(SndRate=Rate);
 }
 
@@ -702,7 +722,19 @@ void RenderAudio(int *Wave,unsigned int Samples)
 
   /* Waveform generator */
   for(J=0;J<SND_CHANNELS;J++)
+  {
+    /* Decay for percussion channels 24-27 */
+    if((J>=24)&&(J<=27)&&(WaveCH[J].Volume>0))
+    {
+      I = (Samples*256)/(SndRate/10); /* 100ms decay */
+      WaveCH[J].Volume = WaveCH[J].Volume>I? WaveCH[J].Volume-I:0;
+    }
+
     if(WaveCH[J].Freq&&(V=WaveCH[J].Volume)&&(MasterSwitch&(1<<J)))
+    {
+      /* Boost percussion channels to punch through the track */
+      if((J>=24)&&(J<=27)) V<<=1;
+
       switch(WaveCH[J].Type)
       {
         case SND_WAVE: /* Custom Waveform */
@@ -774,7 +806,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
           WaveCH[J].Count = L2;
           break;
 
-        case SND_NOISE: /* White Noise */
+        case SND_NOISE: /* White Noise (LFSR precision) */
           /* For high frequencies, recompute volume */
           if(WaveCH[J].Freq<SndRate)
             K=((unsigned int)WaveCH[J].Freq<<16)/SndRate;
@@ -786,15 +818,13 @@ void RenderAudio(int *Wave,unsigned int Samples)
           L1=WaveCH[J].Count;
           for(I=0;I<Samples;I++)
           {
-            /* Use NoiseOut bit for output */
-            Wave[I]+=((NoiseGen>>NoiseOut)&1? 127:-128)*V;
+            /* LFSR feedback for hardware-accurate noise (AY-3-8910) */
+            Wave[I]+=((NoiseGen&1)? 127:-128)*V;
             L1+=K;
             if(L1&0xFFFF0000)
             {
-              /* XOR NoiseOut and NoiseXOR bits and feed them back */
-              NoiseGen=
-                (((NoiseGen>>NoiseOut)^(NoiseGen>>NoiseXor))&1)
-              | ((NoiseGen<<1)&((2<<NoiseOut)-1));
+              /* LFSR logic: XORing bits 0 and 3 */
+              NoiseGen = (NoiseGen>>1) ^ (NoiseGen&1? 0x12000:0);
               L1&=0xFFFF;
             }
           }
@@ -812,18 +842,34 @@ void RenderAudio(int *Wave,unsigned int Samples)
           for(I=0;I<Samples;I++,L1+=K)
             Wave[I]+=((L1-K)^(L1+K))&0x8000? 0:(L1&0x8000? 127:-128)*V;
 #else /* SLOW_MELODIC_AUDIO */
-          for(I=0;I<Samples;I++,L1+=K)
+          for(I=0;I<Samples;I++)
           {
             L2 = L1+K;
-            A1 = L1&0x8000? 127:-128;
-            if((L1^L2)&0x8000)
-              A1=A1*(0x8000-(L1&0x7FFF)-(L2&0x7FFF))/K;
+            /* Realistic Bass: Apply ONLY to PSG chip channels (0,1,2) < 200Hz */
+            if((J < 3)&&(WaveCH[J].Type==SND_MELODIC)&&(WaveCH[J].Freq<200))
+            {
+              /* 70% Square + 30% Triangle for a punchier and more natural PSG bass */
+              A1 = (L1&0x8000? 89:-89);                       /* Square part */
+              A1 += (((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128)*38/100; /* Triangle part */
+            }
+            else if(WaveCH[J].Type==SND_TRIANGLE)
+            {
+              A1 = ((L1&0x8000? 0xFFFF-L1:L1)>>7) - 128;      /* Triangle */
+            }
+            else
+            {
+              A1 = L1&0x8000? 127:-128;                       /* Square   */
+            }
+
             Wave[I]+=A1*V;
+            L1 = L2;
           }
 #endif /* SLOW_MELODIC_AUDIO */
           WaveCH[J].Count=L1&0xFFFF;
           break;
       }
+    }
+  }
 }
 
 /** PlayAudio() **********************************************/
@@ -832,7 +878,7 @@ void RenderAudio(int *Wave,unsigned int Samples)
 /*************************************************************/
 unsigned int PlayAudio(int *Wave,unsigned int Samples)
 {
-  sample Buf[256];
+  sample Buf[512]; /* Double buffer for stereo */
   unsigned int I,J,K;
   int D;
 
@@ -844,33 +890,33 @@ unsigned int PlayAudio(int *Wave,unsigned int Samples)
   if(J<Samples) Samples=J;
 
   /* Spin until all samples played or WriteAudio() fails */
-  for(K=I=J=0;(K<Samples)&&(I==J);K+=I)
+  for(K=I=J=0;(K<Samples)&&(I==J*2);K+=J)
   {
-    /* Compute number of samples to convert */
-    J = sizeof(Buf)/sizeof(sample);
+    /* Compute number of samples to convert (limit by buffer size / 2 channels) */
+    J = (sizeof(Buf)/sizeof(sample))/2;
     J = Samples-K>J? J:Samples-K;
 
-    /* Convert samples */
+    /* Convert samples to stereo (duplicate L/R) */
     for(I=0;I<J;++I)
     {
       D      = ((*Wave++)*MasterVolume)>>8;
       D      = D>32767? 32767:D<-32768? -32768:D;
 #if defined(BPU16)
-      Buf[I] = D+32768;
+      Buf[I*2] = Buf[I*2+1] = D+32768;
 #elif defined(BPS16)
-      Buf[I] = D;
+      Buf[I*2] = Buf[I*2+1] = D;
 #elif defined(BPU8)
-      Buf[I] = (D>>8)+128;
+      Buf[I*2] = Buf[I*2+1] = (D>>8)+128;
 #else
-      Buf[I] = D>>8;
+      Buf[I*2] = Buf[I*2+1] = D>>8;
 #endif
     }
 
-    /* Play samples */
-    I = WriteAudio(Buf,J);
+    /* Play samples (returns total samples written, i.e., J*2) */
+    I = WriteAudio(Buf,J*2);
   }
 
-  /* Return number of samples played */
+  /* Return number of mono samples played */
   return(K);
 }
 

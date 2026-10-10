@@ -70,10 +70,15 @@
 #define MSX_AUTOFIREA 0x01000000
 #define MSX_AUTOFIREB 0x02000000
 
+#define JOY_NONE      0
+#define JOY_STICK     1
+#define SETJOYTYPE(N,T) Mode=(Mode&~(0x030<<(2*(N))))|((T)<<(4+2*(N)))
+
 extern int MasterSwitch;
 extern int MasterVolume;
 extern int ExitNow;
 extern unsigned char Verbose;
+extern unsigned int Mode;
 
 static SDL_Window *SDLWindow = NULL;
 static SDL_Renderer *Renderer = NULL;
@@ -205,28 +210,18 @@ int InitUnix(const char *Title, int Width, int Height) {
     SDL_RenderPresent(Renderer);
 
     /* Open available game controllers or joysticks */
-    int ControllerIdx = 0;
     int NumJoysticks = SDL_NumJoysticks();
     if (NumJoysticks > 0) printf("SDL: Found %d joystick(s)\n", NumJoysticks);
 
-    for (int i = 0; i < NumJoysticks && ControllerIdx < 2; ++i) {
-        if (SDL_IsGameController(i)) {
-            Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
-            if (Controllers[ControllerIdx]) {
-                printf("SDL: Opened GameController %d: %s\n", ControllerIdx, SDL_GameControllerName(Controllers[ControllerIdx]));
-                ControllerIdx++;
-            }
-        } else {
-            /* Fallback to generic joystick if no GameController mapping exists */
-            SDL_Joystick *Joy = SDL_JoystickOpen(i);
-            if (Joy) {
-                printf("SDL: Opened generic Joystick %d: %s\n", ControllerIdx, SDL_JoystickName(Joy));
-                /* We still want to use it, but generic joysticks need different handling. 
-                   For now, we just log it. In a full implementation, we'd add SDL_JOYBUTTONDOWN etc. */
-                SDL_JoystickClose(Joy);
-                /* Try to force it as a GameController anyway if it has enough buttons */
-                Controllers[ControllerIdx] = SDL_GameControllerOpen(i);
-                if (Controllers[ControllerIdx]) ControllerIdx++;
+    for (int i = 0; i < NumJoysticks; ++i) {
+        for (int j = 0; j < 2; ++j) {
+            if (!Controllers[j]) {
+                Controllers[j] = SDL_GameControllerOpen(i);
+                if (Controllers[j]) {
+                    SETJOYTYPE(j, JOY_STICK);
+                    printf("SDL: Opened GameController %d: %s (Attached to MSX Port %c)\n", j, SDL_GameControllerName(Controllers[j]), 'A' + j);
+                    break;
+                }
             }
         }
     }
@@ -391,14 +386,14 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 unsigned int Key = 0;
 
                 switch (Event->cbutton.button) {
-                    case SDL_CONTROLLER_BUTTON_DPAD_UP:    Mask = BTN_UP; break;
-                    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:  Mask = BTN_DOWN; break;
-                    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:  Mask = BTN_LEFT; break;
-                    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: Mask = BTN_RIGHT; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_UP:    Mask = BTN_UP; Key = CON_UP; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:  Mask = BTN_DOWN; Key = CON_DOWN; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:  Mask = BTN_LEFT; Key = CON_LEFT; break;
+                    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: Mask = BTN_RIGHT; Key = CON_RIGHT; break;
                     
-                    /* A (Right) = Fire 1, B (Bottom) = Fire 2 */
-                    case SDL_CONTROLLER_BUTTON_A:          Mask = BTN_FIREA; break;
-                    case SDL_CONTROLLER_BUTTON_B:          Mask = BTN_FIREB; break;
+                    /* A = Select/OK, B = Back/Exit */
+                    case SDL_CONTROLLER_BUTTON_A:          Key = CON_OK; Mask = BTN_FIREA; break;
+                    case SDL_CONTROLLER_BUTTON_B:          Key = CON_EXIT; Mask = BTN_FIREB; break;
                     
                     /* X (Top) = F4, Y (Left) = F3 */
                     case SDL_CONTROLLER_BUTTON_X:          Key = CON_F4; break;
@@ -410,23 +405,47 @@ static void HandleSDLEvent(SDL_Event *Event) {
                     case SDL_CONTROLLER_BUTTON_LEFTSTICK:     Mask = BTN_FIREX; break; /* Mapping L2/R2 equivalent */
                     case SDL_CONTROLLER_BUTTON_RIGHTSTICK:    Mask = BTN_FIREY; break;
                     
-                    /* Start = F1, Select = F2 */
-                    case SDL_CONTROLLER_BUTTON_START:      Key = CON_F1; break;
-                    case SDL_CONTROLLER_BUTTON_BACK:       Key = CON_F2; break;
-                }
-                
-                if (Mask) {
+                    /* Start = F1, Back (Select) = F2 */
+                    case SDL_CONTROLLER_BUTTON_START:      Mask = BTN_START; Key = CON_F1; break;
+                    case SDL_CONTROLLER_BUTTON_BACK:       Mask = BTN_SELECT; Key = CON_F2; break;
+                    }
+
                     int idx = GetControllerIdx(Event->cbutton.which);
                     if (idx >= 0) {
-                        if (idx == 1) Mask <<= 16;
-                        if (Pressed) JoyState |= Mask; else JoyState &= ~Mask;
+                    if (Mask) {
+                        unsigned int PortMask = (idx == 1) ? (Mask << 16) : Mask;
+                        if (Pressed) JoyState |= PortMask; else JoyState &= ~PortMask;
+
+                        /* Check for SELECT + START combo to open emulator menu (F10) */
+                        unsigned int Combined = (idx == 1) ? (JoyState >> 16) : JoyState;
+                        if (Pressed && (Combined & BTN_SELECT) && (Combined & BTN_START)) {
+                            LastKey = CON_F10;
+                            if (KeyHandler) KeyHandler(CON_F10);
+                        }
+
                     }
-                }
-                
-                if (Key && KeyHandler) {
-                    if (!Pressed) Key |= CON_RELEASE;
-                    KeyHandler(Key);
-                }
+                    }
+
+                    if (Key) {
+                    if (Pressed) {
+                        LastKey = Key;
+                        /* Navigation keys repeat manually */
+                        if ((Key == CON_UP) || (Key == CON_DOWN) || (Key == CON_LEFT) || (Key == CON_RIGHT)) {
+                            HeldKey    = Key;
+                            NextRepeat = SDL_GetTicks() + 400;
+                        }
+                        /* Send to MSX keyboard handler, except for menu-only OK/EXIT */
+                        if (KeyHandler && (Key != CON_OK) && (Key != CON_EXIT)) {
+                            KeyHandler(Key);
+                        }
+                    } else {
+                        if ((Key & CON_KEYCODE) == HeldKey) HeldKey = 0;
+                        if (KeyHandler && (Key != CON_OK) && (Key != CON_EXIT)) {
+                            KeyHandler(Key | CON_RELEASE);
+                        }
+                    }
+                    }
+
             }
             break;
 
@@ -464,6 +483,8 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 unsigned int MaskR = idx ? (BTN_RIGHT << 16) : BTN_RIGHT;
                 unsigned int MaskU = idx ? (BTN_UP << 16) : BTN_UP;
                 unsigned int MaskD = idx ? (BTN_DOWN << 16) : BTN_DOWN;
+                unsigned int OldJoyState = JoyState;
+                unsigned int Key = 0;
                 
                 if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
                     if (Val > Threshold) JoyState |= MaskR; else JoyState &= ~MaskR;
@@ -471,6 +492,25 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 } else if (Event->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
                     if (Val > Threshold) JoyState |= MaskD; else JoyState &= ~MaskD;
                     if (Val < -Threshold) JoyState |= MaskU; else JoyState &= ~MaskU;
+                }
+
+                if (JoyState != OldJoyState) {
+                    if ((JoyState & MaskU) && !(OldJoyState & MaskU)) Key = CON_UP;
+                    else if ((JoyState & MaskD) && !(OldJoyState & MaskD)) Key = CON_DOWN;
+                    else if ((JoyState & MaskL) && !(OldJoyState & MaskL)) Key = CON_LEFT;
+                    else if ((JoyState & MaskR) && !(OldJoyState & MaskR)) Key = CON_RIGHT;
+
+                    if (Key) {
+                        LastKey = Key;
+                        HeldKey = Key;
+                        NextRepeat = SDL_GetTicks() + 400;
+                        /* Note: We do NOT call KeyHandler(Key) here for axes to avoid 
+                           interference with the MSX keyboard during gameplay. 
+                           Menus use LastKey/GetKey() which is updated above. */
+                    } else {
+                        /* If axis returned to center, stop repeating */
+                        if (!(JoyState & (MaskU|MaskD|MaskL|MaskR))) HeldKey = 0;
+                    }
                 }
             }
             break;
@@ -485,6 +525,8 @@ static void HandleSDLEvent(SDL_Event *Event) {
                 unsigned int MaskR = idx ? (BTN_RIGHT << 16) : BTN_RIGHT;
                 unsigned int MaskU = idx ? (BTN_UP << 16) : BTN_UP;
                 unsigned int MaskD = idx ? (BTN_DOWN << 16) : BTN_DOWN;
+                unsigned int OldJoyState = JoyState;
+                unsigned int Key = 0;
 
                 if (Event->jaxis.axis == 0) { /* X Axis */
                     if (Val > Threshold) JoyState |= MaskR; else JoyState &= ~MaskR;
@@ -493,17 +535,48 @@ static void HandleSDLEvent(SDL_Event *Event) {
                     if (Val > Threshold) JoyState |= MaskD; else JoyState &= ~MaskD;
                     if (Val < -Threshold) JoyState |= MaskU; else JoyState &= ~MaskU;
                 }
+
+                if (JoyState != OldJoyState) {
+                    if ((JoyState & MaskU) && !(OldJoyState & MaskU)) Key = CON_UP;
+                    else if ((JoyState & MaskD) && !(OldJoyState & MaskD)) Key = CON_DOWN;
+                    else if ((JoyState & MaskL) && !(OldJoyState & MaskL)) Key = CON_LEFT;
+                    else if ((JoyState & MaskR) && !(OldJoyState & MaskR)) Key = CON_RIGHT;
+
+                    if (Key) {
+                        LastKey = Key;
+                        HeldKey = Key;
+                        NextRepeat = SDL_GetTicks() + 400;
+                        /* Note: We do NOT call KeyHandler(Key) here for axes to avoid 
+                           interference with the MSX keyboard during gameplay. 
+                           Menus use LastKey/GetKey() which is updated above. */
+                    } else {
+                        /* If axis returned to center, stop repeating */
+                        if (!(JoyState & (MaskU|MaskD|MaskL|MaskR))) HeldKey = 0;
+                    }
+                }
             }
             break;
 
         case SDL_CONTROLLERDEVICEADDED:
+        case SDL_JOYDEVICEADDED:
             {
-                int i = Event->cdevice.which;
-                if (SDL_IsGameController(i)) {
-                    for (int j = 0; j < 2; ++j) {
-                        if (!Controllers[j]) {
-                            Controllers[j] = SDL_GameControllerOpen(i);
-                            if (Verbose) printf("SDL: Controller %d connected: %s\n", j, SDL_GameControllerName(Controllers[j]));
+                int i = (Event->type == SDL_CONTROLLERDEVICEADDED) ? Event->cdevice.which : Event->jdevice.which;
+                SDL_JoystickID InstanceID = SDL_JoystickGetDeviceInstanceID(i);
+                int Found = 0;
+                for (int j = 0; j < 2; j++) {
+                    if (Controllers[j]) {
+                        SDL_Joystick *Joy = SDL_GameControllerGetJoystick(Controllers[j]);
+                        if (Joy && SDL_JoystickInstanceID(Joy) == InstanceID) { Found = 1; break; }
+                    }
+                }
+                if (Found) break;
+
+                for (int j = 0; j < 2; ++j) {
+                    if (!Controllers[j]) {
+                        Controllers[j] = SDL_GameControllerOpen(i);
+                        if (Controllers[j]) {
+                            SETJOYTYPE(j, JOY_STICK);
+                            if (Verbose) printf("SDL: Controller %d connected: %s (Attached to MSX Port %c)\n", j, SDL_GameControllerName(Controllers[j]), 'A' + j);
                             break;
                         }
                     }
@@ -512,14 +585,17 @@ static void HandleSDLEvent(SDL_Event *Event) {
             break;
 
         case SDL_CONTROLLERDEVICEREMOVED:
+        case SDL_JOYDEVICEREMOVED:
             {
-                SDL_GameController *C = SDL_GameControllerFromInstanceID(Event->cdevice.which);
-                if (C) {
-                    for (int j = 0; j < 2; ++j) {
-                        if (Controllers[j] == C) {
+                SDL_JoystickID InstanceID = (Event->type == SDL_CONTROLLERDEVICEREMOVED) ? Event->cdevice.which : Event->jdevice.which;
+                for (int j = 0; j < 2; ++j) {
+                    if (Controllers[j]) {
+                        SDL_Joystick *Joy = SDL_GameControllerGetJoystick(Controllers[j]);
+                        if (Joy && SDL_JoystickInstanceID(Joy) == InstanceID) {
                             if (Verbose) printf("SDL: Controller %d disconnected\n", j);
-                            SDL_GameControllerClose(C);
+                            SDL_GameControllerClose(Controllers[j]);
                             Controllers[j] = NULL;
+                            SETJOYTYPE(j, JOY_NONE);
                             /* Clear joystick state for this port */
                             if (j == 0) JoyState &= ~BTN_ALL;
                             else JoyState &= ~((unsigned int)BTN_ALL << 16);
