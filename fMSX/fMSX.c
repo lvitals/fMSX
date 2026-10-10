@@ -11,6 +11,7 @@
 /**     changes to this file.                               **/
 /*************************************************************/
 
+#include "GDBStub.h"
 #include "MSX.h"
 #include "Help.h"
 #include "EMULib.h"
@@ -28,6 +29,7 @@ static const char *Options[]=
   "home","simbdos","wd1793","sound","nosound","trap","sync","nosync",
   "scale","static","nostatic","vsync","480","200",
   "scanlines","noscanlines","4x3","latency",
+  "frames","keys","dumpscreen","dumpvram","gdb","debugger",
   0
 };
 
@@ -295,6 +297,37 @@ int main(int argc,char *argv[])
                  else printf("%s: No audio latency supplied\n",argv[0]);
                  break;
 
+        case 40: N++;
+                 if(N<argc) ExitFrames=atoi(argv[N]);
+                 else printf("%s: No frame count supplied\n",argv[0]);
+                 break;
+        case 41: N++;
+                 if(N<argc) KeyScript=argv[N];
+                 else printf("%s: No key script supplied\n",argv[0]);
+                 break;
+        case 42: N++;
+                 if(N<argc) DumpName=argv[N];
+                 else printf("%s: No screen dump file supplied\n",argv[0]);
+                 break;
+        case 43: N++;
+                 if(N<argc) VRAMDumpName=argv[N];
+                 else printf("%s: No VRAM dump file supplied\n",argv[0]);
+                 break;
+        case 44: N++;
+                 /* before anything is printed on the protocol's output */
+                 if((N<argc)&&!strcmp(argv[N],"-")) GDBStdio();
+                 else printf("%s: -gdb takes - (stdin/stdout; no network)\n",argv[0]);
+                 break;
+        case 45: N++;
+                 if(N<argc)
+                 {
+                   GDBDebugger=argv[N];
+                   /* Ctrl-C is the debugger's: it stops the program */
+                   signal(SIGINT,SIG_IGN);
+                 }
+                 else printf("%s: No debugger command supplied\n",argv[0]);
+                 break;
+
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
       }
   }
@@ -306,6 +339,7 @@ int main(int argc,char *argv[])
   /* Start fMSX! */
   if(!InitMachine()) return(1);
   StartMSX(Mode,RAMPages,VRAMPages);
+  HeadlessDump();
   TrashMSX();
   TrashMachine();
   return(0);

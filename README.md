@@ -118,6 +118,53 @@ Common options:
 
 Full list available by running `fmsx -help`
 
+### Headless runs
+
+For automated tests, with SDL's dummy drivers no window opens:
+
+*   `-frames <count>` - Quit after `<count>` frames
+*   `-keys <script>` - Press keys at given frames: `frame:KEY[*hold]`,
+    comma-separated. `KEY` is a character or a name (`ESC`, `SPACE`,
+    `RETURN`, `UP`, `DOWN`, `LEFT`, `RIGHT`, `SHIFT`, `CTRL`, `F1`..`F5`,
+    ...); it is held 4 frames unless `*hold` says otherwise
+*   `-dumpscreen <file>` - At exit, write the screen mode, then the text
+    of SCREEN 0/1 (printable ASCII; any other byte as `.`)
+*   `-dumpvram <file>` - At exit, write the VRAM
+*   `-debugger <command>` - Start a debugger on the program: fMSX runs
+    `<command> -ex 'target remote /dev/pts/N' [options] program.elf` on
+    the terminal, the protocol on a pseudo-terminal of its own (gdb's
+    serial line; no network), the `.elf` beside the ROM when there is one.
+    Ctrl-C stops the program through the debugger; fMSX waits for the
+    debugger to quit before it exits
+*   `-gdb -` - Serve the protocol on the standard input and output, for a
+    debugger that starts fMSX (`target remote | fmsx ... -gdb -
+    program.rom`); fMSX's messages go to stderr, and it quits when the
+    debugger closes the pipe. Both serve gdb's remote protocol (target
+    `z80`) from the first instruction: registers, the memory the CPU sees,
+    breakpoints (kept by the emulator, the code may be in ROM), step,
+    continue, Ctrl-C; the end of the emulation (`-frames`) reaches the
+    debugger as the program's exit. A breakpoint
+    stops only the program's code: a cartridge in slot 1 or 2, or the RAM
+    (the same address is other code in the BIOS, the SUB-ROM, the disk ROM
+    and the ROMs fMSX adds). An extension a gdb never asks for,
+    `qAlefMap` (announced as `qAlefMap+`), answers which part of the ROM
+    image is at each 8kB page: alef-db's segments of a mapped ROM
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./fmsx -msx1 -nosound -nosync \
+    -frames 1200 -keys '600:p,610:r,620:i,630:n,640:t,650:SPACE,660:1,670:RETURN' \
+    -dumpscreen screen.txt
+```
+
+Debugging an alefc program (its `.elf` from `alefc -g`, beside the ROM) with
+alef-db:
+
+```bash
+./fmsx -msx1 -debugger alef-db program.rom
+```
+
+In an MSXgl-alef project built with `DEBUG=1`, `make debug` does it.
+
 ## Disk Usage
 
 1.  Create disk images using included tools:

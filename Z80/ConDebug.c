@@ -27,6 +27,7 @@
 
 #include "Z80.h"
 #include "Console.h"
+#include "GDBStub.h"
 #include <stdlib.h>
 
 #define DebugZ80 OriginalDebugZ80
@@ -58,6 +59,9 @@ byte DebugZ80(Z80 *R)
   char S[1024];
   word A,Addr,ABuf[20];
   int J,I,K,X,Y,MemoryDump,DrawWindow,ExitNow;
+
+  /* gdb connected: it is the debugger */
+  if(GDBActive()) return(GDBDebugZ80(R));
 
   /* If we don't have enough screen estate... */
   if((VideoW<32*8)||(VideoH<23*8))

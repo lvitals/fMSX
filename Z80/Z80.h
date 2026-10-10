@@ -160,6 +160,13 @@ void PatchZ80(register Z80 *R);
 /*************************************************************/
 #ifdef DEBUG
 byte DebugZ80(register Z80 *R);
+
+/** BreakZ80 *************************************************/
+/** With DEBUG, 64kB of flags, one per address, or 0: the   **/
+/** CPU sets Trace when PC reaches an address flagged       **/
+/** nonzero (a debugger's breakpoints, as many as it sets). **/
+/*************************************************************/
+extern byte *BreakZ80;
 #endif
 
 /** LoopZ80() ************************************************/

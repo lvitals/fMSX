@@ -19,6 +19,7 @@
 #include "SHA1.h"
 #include "MCF.h"
 #include "Console.h"
+#include "GDBStub.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -69,6 +70,11 @@ int  HPeriod     = CPU_HPERIOD;    /* CPU cycles per HBlank  */
 int  RAMPages    = 4;              /* Number of RAM pages    */
 int  VRAMPages   = 2;              /* Number of VRAM pages   */
 byte ExitNow     = 0;              /* 1 = Exit the emulator  */
+int  ExitFrames   = 0;           /* Quit after N frames (0=never) */
+const char *KeyScript    = 0;    /* "frame:KEY[*hold],..." to press */
+const char *DumpName     = 0;    /* Screen text written at exit   */
+const char *VRAMDumpName = 0;    /* Raw VRAM written at exit      */
+static int HeadlessFrames = 0;   /* Frames run so far             */
 
 /** Main hardware: CPU, RAM, VRAM, mappers *******************/
 Z80 CPU;                           /* Z80 CPU state and regs */
@@ -87,6 +93,7 @@ byte RAMMask;                      /* RAM Mapper mask        */
 byte *ROMData[MAXSLOTS];           /* ROM Mapper contents    */
 byte ROMMapper[MAXSLOTS][4];       /* ROM Mappers state      */
 byte ROMMask[MAXSLOTS];            /* ROM Mapper masks       */
+int  ROMPages[MAXSLOTS];           /* ROM sizes, 8kB pages    */
 byte ROMType[MAXSLOTS];            /* ROM Mapper types       */
 
 byte EnWrite[4];                   /* 1 if write enabled     */
@@ -463,6 +470,7 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   {
     ROMMask[J]  = 0;
     ROMData[J]  = 0;
+    ROMPages[J] = 0;
     ROMType[J]  = 0;
     SRAMData[J] = 0;
     SRAMName[J] = 0;
@@ -624,6 +632,7 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   /* Start execution of the code */
   if(Verbose) printf("RUNNING ROM CODE...\n");
   UpdateTimings();
+  if(!GDBStart(&CPU)) return(0);
   A=RunZ80(&CPU);
 
   /* Exiting emulation... */
@@ -631,6 +640,81 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   return(1);
 }
 
+
+/** HeadlessFrame() ******************************************/
+/** Once per frame: press the -keys due now, and quit after **/
+/** -frames frames. A key is a name (ESC, SPACE, RETURN,    **/
+/** UP, F1, ...) or a character, held 4 frames unless       **/
+/** "*N" says how many: "60:ESC", "30:a*10,90:SPACE".       **/
+/*************************************************************/
+static void HeadlessFrame(void)
+{
+  static const struct { const char *Name; byte Key; } Named[] =
+  {
+    { "ESC",KBD_ESCAPE },{ "SPACE",KBD_SPACE },{ "RETURN",KBD_ENTER },
+    { "ENTER",KBD_ENTER },{ "UP",KBD_UP },{ "DOWN",KBD_DOWN },
+    { "LEFT",KBD_LEFT },{ "RIGHT",KBD_RIGHT },{ "SHIFT",KBD_SHIFT },
+    { "CTRL",KBD_CONTROL },{ "GRAPH",KBD_GRAPH },{ "BS",KBD_BS },
+    { "TAB",KBD_TAB },{ "DEL",KBD_DELETE },{ "INS",KBD_INSERT },
+    { "HOME",KBD_HOME },{ "STOP",KBD_STOP },{ "SELECT",KBD_SELECT },
+    { "F1",KBD_F1 },{ "F2",KBD_F2 },{ "F3",KBD_F3 },{ "F4",KBD_F4 },
+    { "F5",KBD_F5 },{ 0,0 }
+  };
+  const char *P;
+  char Name[16];
+  int At,Hold,N,K;
+
+  ++HeadlessFrames;
+  for(P=KeyScript;P&&*P;)
+  {
+    At = strtol(P,(char **)&P,10);
+    if(*P==':') ++P;
+    for(N=0;*P&&(*P!=',')&&(*P!='*');++P) if(N<15) Name[N++]=*P;
+    Name[N] = '\0';
+    Hold    = 4;
+    if(*P=='*') Hold=strtol(P+1,(char **)&P,10);
+    if(*P==',') ++P;
+    for(K=0;Named[K].Name&&strcmp(Named[K].Name,Name);++K);
+    K = Named[K].Name? Named[K].Key:(N==1? (byte)Name[0]:0);
+    if(K&&(HeadlessFrames>=At)&&(HeadlessFrames<At+Hold)) KBD_SET(K);
+  }
+  if(ExitFrames&&(HeadlessFrames>=ExitFrames)) ExitNow=1;
+}
+
+/** HeadlessDump() *******************************************/
+/** Write the screen text (-dumpscreen): the screen mode,   **/
+/** then each row of a text mode (SCREEN 0 and 1, 80        **/
+/** columns too), printable ASCII as itself and any other   **/
+/** byte as '.'; and the VRAM as it is (-dumpvram).         **/
+/*************************************************************/
+void HeadlessDump(void)
+{
+  FILE *F;
+  int X,Y,W,E;
+  byte C;
+
+  if(DumpName&&(F=fopen(DumpName,"w")))
+  {
+    fprintf(F,"mode %d\n",ScrMode);
+    W = ScrMode==0? 40:ScrMode==1? 32:ScrMode==MAXSCREEN+1? 80:0;
+    for(Y=0;W&&(Y<24);++Y)
+    {
+      for(E=W;(E>0)&&(ChrTab[Y*W+E-1]==' ');--E);
+      for(X=0;X<E;++X)
+      {
+        C = ChrTab[Y*W+X];
+        fputc((C>=0x20)&&(C<0x7F)? C:'.',F);
+      }
+      fputc('\n',F);
+    }
+    fclose(F);
+  }
+  if(VRAMDumpName&&(F=fopen(VRAMDumpName,"wb")))
+  {
+    fwrite(VRAM,1,VRAMPages*0x4000,F);
+    fclose(F);
+  }
+}
 /** TrashMSX() ***********************************************/
 /** Free resources allocated by StartMSX().                 **/
 /*************************************************************/
@@ -638,6 +722,9 @@ void TrashMSX(void)
 {
   FILE *F;
   int J;
+
+  /* gdb: the program exited */
+  GDBStop();
 
   /* CMOS.ROM is saved in the program directory */
   if(ProgDir && chdir(ProgDir))
@@ -2090,6 +2177,9 @@ word LoopZ80(Z80 *R)
   static byte Drawing=0;
   register int J;
 
+  /* gdb's Ctrl-C */
+  GDBPoll(R);
+
   /* Flip HRefresh bit */
   VDPStatus[2]^=0x20;
 
@@ -2251,6 +2341,9 @@ word LoopZ80(Z80 *R)
 
     /* Check keyboard */
     Keyboard();
+
+    /* Headless runs: scripted keys, a frame limit */
+    HeadlessFrame();
 
     /* Exit emulation if requested */
     if(ExitNow) return(INT_QUIT);
@@ -3134,8 +3227,13 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* Update ROMName */
   if(Slot<MAXCARTS)
   {
+    /* FileName may point at ROMName[Slot] (as it does during startup).
+     * Duplicate it before freeing the old value, otherwise the filename
+     * passed to fmsxFopen() below becomes a dangling pointer. */
+    T = FileName && *FileName? strdup(FileName):0;
     if(ROMName[Slot]) free(ROMName[Slot]);
-    ROMName[Slot] = FileName && *FileName? strdup(FileName):0;
+    ROMName[Slot] = T;
+    FileName = T;
   }
 
   /* Find primary/secondary slots */
@@ -3188,6 +3286,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
       FreeMemory(ROMData[Slot]);
       ROMData[Slot] = 0;
       ROMMask[Slot] = 0;
+      ROMPages[Slot] = 0;
       /* Set memory map to dummy RAM */
       for(C1=0;C1<8;++C1) MemMap[PS][SS][C1]=EmptyRAM;
       /* Restart MSX */
@@ -3272,6 +3371,7 @@ int LoadCart(const char *FileName,int Slot,int Type)
   /* Allocate space for the ROM */
   ROMData[Slot]=P=GetMemory(Pages<<13);
   if(!P) { PRINTFAILED;return(0); }
+  ROMPages[Slot]=Pages;
 
   /* Try loading ROM */
   if(!LoadROM(FileName,Len<<13,P)) { PRINTFAILED;return(0); }

@@ -71,6 +71,7 @@ SOURCES = \
     $(FMSX)/I8251.c \
     $(FMSX)/Patch.c \
     $(FMSX)/Menu.c \
+    $(FMSX)/GDBStub.c \
     $(UNIX)/Unix.c
 
 CFLAGS  += $(shell pkg-config --cflags sdl2)

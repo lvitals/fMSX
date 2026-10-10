@@ -259,7 +259,8 @@ int LoadFDI(FDIDisk *D,const char *FileName,int Format)
   /* Open file and find its size */
   if(!(F=fopen(FileName,"rb"))) return(0);
 #ifdef ZLIB
-  for(J=0;(I=fread(Buf,1,sizeof(Buf),F));J+=I);
+  for(J=0;(I=fread(Buf,1,sizeof(Buf),F))>0;J+=I);
+  if(J<=0) { fclose(F);return(0); }
 #else
   if(fseek(F,0,SEEK_END)<0) { fclose(F);return(0); }
   if((J=ftell(F))<=0)       { fclose(F);return(0); }

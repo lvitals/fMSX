@@ -15,6 +15,10 @@
 
 #include "Z80.h"
 #include "Tables.h"
+
+#ifdef DEBUG
+byte *BreakZ80 = 0;  /* 64kB of breakpoint flags, or 0      */
+#endif
 #include <stdio.h>
 
 /** INLINE ***************************************************/
@@ -547,8 +551,9 @@ int ExecZ80(register Z80 *R,register int RunCycles)
     while(R->ICount>0)
     {
 #ifdef DEBUG
-      /* Turn tracing on when reached trap address */
+      /* Turn tracing on when reached trap address or a breakpoint */
       if(R->PC.W==R->Trap) R->Trace=1;
+      if(BreakZ80&&BreakZ80[R->PC.W]) R->Trace=1;
       /* Call single-step debugger, exit if requested */
       if(R->Trace)
         if(!DebugZ80(R)) return(R->ICount);
@@ -665,8 +670,9 @@ word RunZ80(Z80 *R)
   for(;;)
   {
 #ifdef DEBUG
-    /* Turn tracing on when reached trap address */
+    /* Turn tracing on when reached trap address or a breakpoint */
     if(R->PC.W==R->Trap) R->Trace=1;
+    if(BreakZ80&&BreakZ80[R->PC.W]) R->Trace=1;
     /* Call single-step debugger, exit if requested */
     if(R->Trace){
       if(!DebugZ80(R)) return(R->PC.W);

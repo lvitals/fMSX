@@ -60,6 +60,13 @@ static const char *HelpText[] =
   "  -simbdos/-wd1793    - Simulate DiskROM disk access calls [-wd1793]",
   "  -sound [<quality>]  - Sound emulation quality (Hz) [44100]",
   "  -latency <ms>       - Audio latency in milliseconds [50]", 
+  "  -frames <count>     - Quit after <count> frames [off]",
+  "  -keys <script>      - Press keys at given frames, e.g. \"60:ESC,90:a*8\"",
+  "  -dumpscreen <file>  - Write the text of the screen at exit [off]",
+  "  -dumpvram <file>    - Write the VRAM at exit [off]",
+  "  -gdb -              - Serve gdb's protocol on stdin/stdout [off]",
+  "  -debugger <command> - Start a debugger on the program (no network),",
+  "                        e.g. -debugger alef-db [off]",
 
   "  -nosound            - Same as '-sound 0'", 
 

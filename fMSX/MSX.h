@@ -256,6 +256,10 @@ extern int  ScanLine;                 /* Current scanline    */
 extern byte *FontBuf;                 /* Optional fixed font */
 
 extern byte ExitNow;                  /* 1: Exit emulator    */
+extern int  ExitFrames;               /* Quit after N frames  */
+extern const char *KeyScript;         /* Keys to press        */
+extern const char *DumpName;          /* Screen text at exit  */
+extern const char *VRAMDumpName;      /* Raw VRAM at exit     */
 
 extern byte PSLReg;                   /* Primary slot reg.   */
 extern byte SSLReg[4];                /* Secondary slot reg. */
@@ -293,6 +297,12 @@ int StartMSX(int NewMode,int NewRAMPages,int NewVRAMPages);
 /** Free memory allocated by StartMSX().                    **/
 /*************************************************************/
 void TrashMSX(void);
+
+/** HeadlessDump() *******************************************/
+/** Write the screen text (-dumpscreen) and the VRAM        **/
+/** (-dumpvram) of the machine that ran, before TrashMSX(). **/
+/*************************************************************/
+void HeadlessDump(void);
 
 /** ResetMSX() ***********************************************/
 /** Reset MSX hardware to new operating modes. Returns new  **/
