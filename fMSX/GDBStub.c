@@ -53,22 +53,6 @@ static const char Hex[] = "0123456789abcdef";
 /* The memory map (MSX.c) */
 extern byte *RAM[8],*EmptyRAM,*RAMData;
 extern byte *MemMap[4][4][8];
-extern byte *ROMData[];
-extern int ROMPages[];
-
-/** ProgramOffset() *****************************************/
-/** The offset in the program's ROM image (cartridge A) of  **/
-/** the 8kB page N as the CPU sees it now: which segment of **/
-/** a mapped ROM is there. -1: other memory.                **/
-/*************************************************************/
-static long ProgramOffset(int N)
-{
-  byte *P = RAM[N];
-
-  if(ROMData[0]&&(P>=ROMData[0])&&(P<ROMData[0]+((long)ROMPages[0]<<13)))
-    return((long)(P-ROMData[0]));
-  return(-1);
-}
 
 /** InProgram() **********************************************/
 /** PC is in the program: a page of a cartridge in slot 1  **/
@@ -416,20 +400,7 @@ byte GDBDebugZ80(Z80 *R)
         break;
       case 'q':
         if(!strncmp(In,"qSupported",10))
-          sprintf(Out,"PacketSize=%x;qAlefMap+",MAXPACKET-16);
-        else if(!strcmp(In,"qAlefMap"))
-        {
-          /* the image offset of each 8kB page, - where it is not
-             the program's ROM: an extension a gdb never asks for */
-          for(P=Out,J=0;J<8;++J)
-          {
-            long O = ProgramOffset(J);
-
-            if(J) *P++=',';
-            if(O<0) *P++='-'; else P+=sprintf(P,"%lx",O);
-          }
-          *P=0;
-        }
+          sprintf(Out,"PacketSize=%x",MAXPACKET-16);
         else if(!strcmp(In,"qAttached")) strcpy(Out,"1");
         else if(!strcmp(In,"qC")) strcpy(Out,"QC1");
         else if(!strcmp(In,"qfThreadInfo")) strcpy(Out,"m1");

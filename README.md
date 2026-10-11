@@ -146,9 +146,7 @@ For automated tests, with SDL's dummy drivers no window opens:
     debugger as the program's exit. A breakpoint
     stops only the program's code: a cartridge in slot 1 or 2, or the RAM
     (the same address is other code in the BIOS, the SUB-ROM, the disk ROM
-    and the ROMs fMSX adds). An extension a gdb never asks for,
-    `qAlefMap` (announced as `qAlefMap+`), answers which part of the ROM
-    image is at each 8kB page: alef-db's segments of a mapped ROM
+    and the ROMs fMSX adds)
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./fmsx -msx1 -nosound -nosync \
@@ -157,10 +155,10 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./fmsx -msx1 -nosound -nosync \
 ```
 
 Debugging an alefc program (its `.elf` from `alefc -g`, beside the ROM) with
-alef-db:
+GDB:
 
 ```bash
-./fmsx -msx1 -debugger alef-db program.rom
+./fmsx -msx1 -debugger gdb program.rom
 ```
 
 In an MSXgl-alef project built with `DEBUG=1`, `make debug` does it.

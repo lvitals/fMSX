@@ -67,7 +67,7 @@ static const char *HelpText[] =
   "  -dumpvram <file>    - Write the VRAM at exit [off]",
   "  -gdb -              - Serve gdb's protocol on stdin/stdout [off]",
   "  -debugger <command> - Start a debugger on the program (no network),",
-  "                        e.g. -debugger alef-db [off]",
+  "                        e.g. -debugger gdb [off]",
 
   "  -nosound            - Same as '-sound 0'", 
 
