@@ -3468,7 +3468,12 @@ int LoadCart(const char *FileName,int Slot,int Type)
         if(Type>=MAP_GUESS)
         {
           int I=GuessROM(P,Len<<13);
-          if(I>=0) Type=I;
+          if(I>=0)
+          {
+            Type=I;
+            /* ResetMSX() takes the mapper from the mode: keep the guess there */
+            if(Slot<MAXCARTS) SETROMTYPE(Slot,Type);
+          }
         }
 
         /* Show MegaROM type */
