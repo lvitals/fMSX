@@ -199,7 +199,18 @@ int main(int argc,char *argv[])
                  if(N>=argc)
                    printf("%s: No number of RAM pages supplied\n",argv[0]);
                  else
-                   RAMPages=atoi(argv[N]);
+                 {
+                   /* N: 16kB pages; Nk or Nm: the size. Less than */
+                   /* 64kB is an MSX1 with no memory mapper        */
+                   char *U;
+                   long K=strtol(argv[N],&U,10);
+
+                   if((*U=='k')||(*U=='K')) ;
+                   else if((*U=='m')||(*U=='M')) K*=1024;
+                   else K*=16;
+                   if(K<64) { RAMKB=(int)K;RAMPages=4; }
+                   else { RAMKB=0;RAMPages=(int)(K/16); }
+                 }
                  break;
         case 14: N++;
                  if(N>=argc)
@@ -327,6 +338,7 @@ int main(int argc,char *argv[])
                  }
                  else printf("%s: No debugger command supplied\n",argv[0]);
                  break;
+
 
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
       }

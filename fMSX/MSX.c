@@ -69,6 +69,7 @@ int  VPeriod     = CPU_VPERIOD;    /* CPU cycles per VBlank  */
 int  HPeriod     = CPU_HPERIOD;    /* CPU cycles per HBlank  */
 int  RAMPages    = 4;              /* Number of RAM pages    */
 int  VRAMPages   = 2;              /* Number of VRAM pages   */
+int  RAMKB       = 0;              /* RAM below 64kB, at the top */
 byte ExitNow     = 0;              /* 1 = Exit the emulator  */
 int  ExitFrames   = 0;           /* Quit after N frames (0=never) */
 const char *KeyScript    = 0;    /* "frame:KEY[*hold],..." to press */
@@ -1043,6 +1044,12 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
     MemMap[3][2][J*2]   = RAMData+(3-J)*0x4000;
     MemMap[3][2][J*2+1] = MemMap[3][2][J*2]+0x2000;
     RAMMapper[J]        = 3-J;
+    /* An MSX1 with less RAM: only the top RAMKB kB of it */
+    if(RAMKB&&(RAMKB<64))
+    {
+      if(J*0x4000<0x10000-RAMKB*1024)        MemMap[3][2][J*2]=EmptyRAM;
+      if(J*0x4000+0x2000<0x10000-RAMKB*1024) MemMap[3][2][J*2+1]=EmptyRAM+0x2000;
+    }
     /* Setting address space */
     RAM[J*2]            = MemMap[0][0][J*2];
     RAM[J*2+1]          = MemMap[0][0][J*2+1];
@@ -1205,7 +1212,12 @@ void WrZ80(word A,byte V)
     }
 
   /* Write to RAM, if enabled */
-  if(EnWrite[A>>14]) { RAM[A>>13][A&0x1FFF]=V;return; }
+  if(EnWrite[A>>14])
+  {
+    /* (not to an 8kB half with no RAM, on a small MSX1) */
+    if((RAM[A>>13]<EmptyRAM)||(RAM[A>>13]>=EmptyRAM+0x4000)) RAM[A>>13][A&0x1FFF]=V;
+    return;
+  }
 
   /* Switch MegaROM pages */
   if((A>0x3FFF)&&(A<0xC000)) MapROM(A,V);
@@ -1544,6 +1556,8 @@ case 0xFD: /* Mapper page at 4000h */
 case 0xFE: /* Mapper page at 8000h */
 case 0xFF: /* Mapper page at C000h */
   J=Port-0xFC;
+  /* Less RAM than 64kB: no mapper */
+  if(RAMKB&&(RAMKB<64)) return;
   Value&=RAMMask;
   if(RAMMapper[J]!=Value)
   {
@@ -1901,7 +1915,7 @@ void PSlot(register byte V)
       SSL[J]     = (SSLReg[PSL[J]]>>I)&3;
       RAM[I]     = MemMap[PSL[J]][SSL[J]][I];
       RAM[I+1]   = MemMap[PSL[J]][SSL[J]][I+1];
-      EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&(MemMap[3][2][I]!=EmptyRAM);
+      EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&((MemMap[3][2][I]!=EmptyRAM)||(MemMap[3][2][I+1]!=EmptyRAM+0x2000));
     }
 }
 
@@ -1927,7 +1941,7 @@ void SSlot(register byte V)
         SSL[J]     = V&3;
         RAM[I]     = MemMap[PSL[J]][SSL[J]][I];
         RAM[I+1]   = MemMap[PSL[J]][SSL[J]][I+1];
-        EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&(MemMap[3][2][I]!=EmptyRAM);
+        EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&((MemMap[3][2][I]!=EmptyRAM)||(MemMap[3][2][I+1]!=EmptyRAM+0x2000));
       }
     }
 }

@@ -234,6 +234,8 @@ extern volatile byte KeyState[16];
 extern byte Verbose;                  /* Debug msgs ON/OFF   */
 extern int  Mode;                     /* ORed MSX_* bits     */
 extern int  RAMPages,VRAMPages;       /* Number of RAM pages */
+extern int  RAMKB;                    /* RAM of an MSX1 with less than 64kB, at the top of the */
+                                      /* address space (8, 16, 32 or 48; 0: all; -ram 8k..48k)             */
 extern byte UPeriod;                  /* % of frames to draw */
 /*************************************************************/
 
