@@ -73,6 +73,7 @@ SOURCES = \
     $(FMSX)/Menu.c \
     $(FMSX)/GDBStub.c \
     $(FMSX)/SDMapper.c \
+    $(FMSX)/SunriseIDE.c \
     $(UNIX)/Unix.c
 
 CFLAGS  += $(shell pkg-config --cflags sdl2)

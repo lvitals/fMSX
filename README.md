@@ -163,6 +163,34 @@ GDB:
 
 In an MSXgl-alef project built with `DEBUG=1`, `make debug` does it.
 
+### Disk interfaces (SD Mapper, Sunrise IDE)
+
+Two cartridges with hard disks on image files, in a cartridge slot (1 or
+2), without the slot expander:
+
+*   `-sdmapper <slot>` - The SD Mapper of Fabio Belavenuto (msxsdmapper),
+    its mapper off: the SPI port at 4000h-48FFh (switched on by bit 0 of
+    6001h) and two SD cards.  Its flash is a cartridge in that slot, loaded
+    as usual (`-rom 5 file`, ASCII16); without one it reads FFh.
+*   `-sdcard <image>` - The next SD card, 1 then 2 (SDHC, block addressed;
+    the size is rounded down to 512 KB).  `SDM_TRACE=1` prints the commands
+    the cards get on the standard error.
+*   `-sunrise <slot>` - The Sunrise IDE, as in openMSX: the flash in banks
+    of 16 KB at 4000h-7FFFh (bits 7-3 of 4104h, in reverse order, choose
+    the bank; after a reset, the last), and with bit 0 of 4104h the ATA
+    registers at 7C00h-7FFFh.
+*   `-sunriserom <image>` - Its flash, up to 128 KB (a smaller one repeats);
+    without one it reads FFh.
+*   `-hd <image>` - The next ATA disk, master then slave (LBA and CHS, PIO;
+    READ/WRITE SECTORS, IDENTIFY, DIAGNOSTIC).
+
+The images are opened for writing and may be sparse and larger than 4 GB:
+
+```bash
+./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard card1.img -sdcard card2.img
+./fmsx -msx2 -ram 256k -sunrise 2 -sunriserom sunrise.rom -hd master.img -hd slave.img
+```
+
 ## Disk Usage
 
 1.  Create disk images using included tools:

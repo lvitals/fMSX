@@ -15,6 +15,7 @@
 
 #include "MSX.h"
 #include "SDMapper.h"
+#include "SunriseIDE.h"
 #include "Sound.h"
 #include "Floppy.h"
 #include "SHA1.h"
@@ -1132,8 +1133,9 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   /* Set "V9958" VDP version for MSX2+ */
   if(MODEL(MSX_MSX2P)) VDPStatus[1]|=0x04;
 
-  /* Reset the SD Mapper */
+  /* Reset the SD Mapper and the Sunrise IDE */
   SDMReset();
+  SRReset();
 
   /* Reset CPU */
   ResetZ80(&CPU);
@@ -1152,6 +1154,10 @@ byte RdZ80(word A)
   /* SD Mapper: the SPI port, when it is on */
   if(SDMSpi&&((A&0xC000)==0x4000)&&(A<=0x4800)&&(PSL[1]==SDMSlot))
     return(SDMRead(A));
+
+  /* Sunrise IDE: the IDE registers, when they are on */
+  if(SRRegs&&(A>=0x7C00)&&(A<0x8000)&&(PSL[1]==SRSlot))
+    return(SRRead(A));
 
   /* Filter out everything but [xx11 1111 1xxx 1xxx] */
   if((A&0x3F88)!=0x3F88) return(RAM[A>>13][A&0x1FFF]);
@@ -1189,6 +1195,10 @@ void WrZ80(word A,byte V)
 {
   /* SD Mapper: the SPI port and its mode register */
   if((SDMSlot>=0)&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&SDMWrite(A,V))
+    return;
+
+  /* Sunrise IDE: the control register and the IDE registers */
+  if((SRSlot>=0)&&((A&0xC000)==0x4000)&&(PSL[1]==SRSlot)&&SRWrite(A,V))
     return;
 
   /* Secondary slot selector */
