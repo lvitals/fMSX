@@ -13,6 +13,7 @@
 
 #include "GDBStub.h"
 #include "MSX.h"
+#include "SDMapper.h"
 #include "Help.h"
 #include "EMULib.h"
 
@@ -30,6 +31,7 @@ static const char *Options[]=
   "scale","static","nostatic","vsync","480","200",
   "scanlines","noscanlines","4x3","latency",
   "frames","keys","dumpscreen","dumpvram","gdb","debugger",
+  "sdmapper","sdcard",
   0
 };
 
@@ -337,6 +339,14 @@ int main(int argc,char *argv[])
                    signal(SIGINT,SIG_IGN);
                  }
                  else printf("%s: No debugger command supplied\n",argv[0]);
+                 break;
+        case 46: N++;
+                 if(N<argc) SDMSlot=atoi(argv[N]);
+                 else printf("%s: No SD Mapper slot supplied\n",argv[0]);
+                 break;
+        case 47: N++;
+                 if(N>=argc) printf("%s: No SD card image supplied\n",argv[0]);
+                 else if(!SDMCard(argv[N])) printf("%s: Can't use SD card image '%s'\n",argv[0],argv[N]);
                  break;
 
 
