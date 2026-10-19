@@ -221,6 +221,38 @@ static const word DiskPatches[] =
 static const word BIOSPatches[] =
 { 0x00E1,0x00E4,0x00E7,0x00EA,0x00ED,0x00F0,0x00F3,0 };
 
+/** No Disk ROM in 3:1 (-nodiskrom): a machine with no disk **/
+int NoDiskROM = 0;
+
+/** The RAM of the SD Mapper, with its mapper on ************/
+static byte *SDMRAMData = 0;
+static byte SDMMapper[4];
+static int  SDMRamOn = 1;  /* 0: not seen yet (-sdmlate) */
+
+/** Map the mapper of the SD Mapper in MemMap (and RAM[] where **/
+/** the CPU sees it): its segments, or nothing while it is off **/
+static void SDMMapRAM(void)
+{
+  int J;
+  for(J=0;J<4;++J)
+  {
+    MemMap[SDMSlot][SDMRAMSUB][J*2]   = SDMRamOn? SDMRAMData+((int)SDMMapper[J]<<14):EmptyRAM;
+    MemMap[SDMSlot][SDMRAMSUB][J*2+1] = SDMRamOn? MemMap[SDMSlot][SDMRAMSUB][J*2]+0x2000:EmptyRAM;
+    if((PSL[J]==SDMSlot)&&(SSL[J]==SDMRAMSUB))
+    {
+      RAM[J*2]   = MemMap[SDMSlot][SDMRAMSUB][J*2];
+      RAM[J*2+1] = MemMap[SDMSlot][SDMRAMSUB][J*2+1];
+      EnWrite[J] = SDMRamOn;
+    }
+  }
+}
+
+/** RAM in page J (I = 2*J) of slot PS:SS: the internal one **/
+/** of 3:2, or the mapper of the SD Mapper                  **/
+#define ISRAM(PS,SS,J,I) \
+  ((((PS)==3)&&((SS)==2)&&((MemMap[3][2][I]!=EmptyRAM)||(MemMap[3][2][(I)+1]!=EmptyRAM+0x2000))) \
+  ||(SDMRam&&SDMRamOn&&((PS)==SDMSlot)&&((SS)==SDMRAMSUB)))
+
 /** Cartridge map, by primary and secondary slots ************/
 static const byte CartMap[4][4] =
 { { 255,3,4,5 },{ 0,0,0,0 },{ 1,1,1,1 },{ 2,255,255,255 } };
@@ -1133,6 +1165,29 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   /* Set "V9958" VDP version for MSX2+ */
   if(MODEL(MSX_MSX2P)) VDPStatus[1]|=0x04;
 
+  /* A machine with no disk interface */
+  if(NoDiskROM) MemMap[3][1][2]=MemMap[3][1][3]=EmptyRAM;
+
+  /* The SD Mapper with its mapper on: the flash goes to */
+  /* subslot 1, the mapper to subslot 3                  */
+  if(SDMRam&&(SDMSlot>=1)&&(SDMSlot<=2))
+  {
+    if(!SDMRAMData) SDMRAMData=malloc(SDMRAMSEGS*0x4000);
+    if(SDMRAMData)
+    {
+      for(J=0;J<8;++J)
+        if((MemMap[SDMSlot][0][J]!=EmptyRAM)&&(MemMap[SDMSlot][0][J]!=EmptyRAM+0x2000))
+        {
+          MemMap[SDMSlot][1][J]=MemMap[SDMSlot][0][J];
+          MemMap[SDMSlot][0][J]=MemMap[SDMSlot][2][J]=EmptyRAM;
+        }
+      for(J=0;J<4;++J) SDMMapper[J]=J;
+      SDMRamOn=!SDMLate;
+      SDMMapRAM();
+    }
+    else SDMRam=0;
+  }
+
   /* Reset the SD Mapper and the Sunrise IDE */
   SDMReset();
   SRReset();
@@ -1151,8 +1206,13 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
 /*************************************************************/
 byte RdZ80(word A)
 {
+  /* SD Mapper (-sdmlate): its RAM appears when its header is */
+  /* read, after the BIOS has chosen the RAM of the machine    */
+  if(!SDMRamOn&&(A==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB))
+  { SDMRamOn=1;SDMMapRAM(); }
+
   /* SD Mapper: the SPI port, when it is on */
-  if(SDMSpi&&((A&0xC000)==0x4000)&&(A<=0x4800)&&(PSL[1]==SDMSlot))
+  if(SDMSpi&&((A&0xC000)==0x4000)&&(A<=0x4800)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB))
     return(SDMRead(A));
 
   /* Sunrise IDE: the IDE registers, when they are on */
@@ -1194,7 +1254,7 @@ byte RdZ80(word A)
 void WrZ80(word A,byte V)
 {
   /* SD Mapper: the SPI port and its mode register */
-  if((SDMSlot>=0)&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&SDMWrite(A,V))
+  if((SDMSlot>=0)&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB)&&SDMWrite(A,V))
     return;
 
   /* Sunrise IDE: the control register and the IDE registers */
@@ -1273,6 +1333,14 @@ case 0xFC: /* Mapper page at 0000h */
 case 0xFD: /* Mapper page at 4000h */
 case 0xFE: /* Mapper page at 8000h */
 case 0xFF: /* Mapper page at C000h */
+  /* The mapper of the SD Mapper answers too (bits 7-5 at 1): */
+  /* alone on an MSX1 of 64kB (whose RAM is no mapper), else  */
+  /* both drive the bus                                        */
+  if(SDMRam&&SDMRAMData)
+  {
+    if(MODEL(MSX_MSX1)&&(RAMPages<=4)) return(0xE0|SDMMapper[Port-0xFC]);
+    return((0xE0|SDMMapper[Port-0xFC])&(RAMMapper[Port-0xFC]|~RAMMask));
+  }
   return(RAMMapper[Port-0xFC]|~RAMMask);
 
 case 0xD9: /* Kanji support */
@@ -1578,6 +1646,12 @@ case 0xFD: /* Mapper page at 4000h */
 case 0xFE: /* Mapper page at 8000h */
 case 0xFF: /* Mapper page at C000h */
   J=Port-0xFC;
+  /* The mapper of the SD Mapper takes the write too */
+  if(SDMRam&&SDMRAMData)
+  {
+    SDMMapper[J]=Value&(SDMRAMSEGS-1);
+    SDMMapRAM();
+  }
   /* Less RAM than 64kB: no mapper */
   if(RAMKB&&(RAMKB<64)) return;
   Value&=RAMMask;
@@ -1620,6 +1694,9 @@ printf("(%04Xh) = %02Xh at PC=%04Xh\n",A,V,CPU.PC.W);
   PS = PSL[J];          /* Primary slot number   */
   SS = SSL[J];          /* Secondary slot number */
   I  = CartMap[PS][SS]; /* Cartridge number      */
+
+  /* The SD Mapper with its mapper on: the flash is in subslot 1 only */
+  if(SDMRam&&(PS==SDMSlot)&&(SS!=SDMSUB)) return;
 
   /* Drop out if no cartridge in that slot */
   if(I>=MAXSLOTS) return;
@@ -1937,7 +2014,7 @@ void PSlot(register byte V)
       SSL[J]     = (SSLReg[PSL[J]]>>I)&3;
       RAM[I]     = MemMap[PSL[J]][SSL[J]][I];
       RAM[I+1]   = MemMap[PSL[J]][SSL[J]][I+1];
-      EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&((MemMap[3][2][I]!=EmptyRAM)||(MemMap[3][2][I+1]!=EmptyRAM+0x2000));
+      EnWrite[J] = ISRAM(PSL[J],SSL[J],J,I);
     }
 }
 
@@ -1950,7 +2027,8 @@ void SSlot(register byte V)
   register byte J,I;
 
   /* Cartridge slots do not have subslots, fix them at 0:0:0:0 */
-  if((PSL[3]==1)||(PSL[3]==2)) V=0x00;
+  /* (but the SD Mapper with its mapper on has an expander)    */
+  if(((PSL[3]==1)||(PSL[3]==2))&&!(SDMRam&&(PSL[3]==SDMSlot))) V=0x00;
   /* In MSX1, slot 0 does not have subslots either */
   if(!PSL[3]&&((Mode&MSX_MODEL)==MSX_MSX1)) V=0x00;
 
@@ -1963,7 +2041,7 @@ void SSlot(register byte V)
         SSL[J]     = V&3;
         RAM[I]     = MemMap[PSL[J]][SSL[J]][I];
         RAM[I+1]   = MemMap[PSL[J]][SSL[J]][I+1];
-        EnWrite[J] = (PSL[J]==3)&&(SSL[J]==2)&&((MemMap[3][2][I]!=EmptyRAM)||(MemMap[3][2][I+1]!=EmptyRAM+0x2000));
+        EnWrite[J] = ISRAM(PSL[J],SSL[J],J,I);
       }
     }
 }

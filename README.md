@@ -166,12 +166,19 @@ In an MSXgl-alef project built with `DEBUG=1`, `make debug` does it.
 ### Disk interfaces (SD Mapper, Sunrise IDE)
 
 Two cartridges with hard disks on image files, in a cartridge slot (1 or
-2), without the slot expander:
+2):
 
-*   `-sdmapper <slot>` - The SD Mapper of Fabio Belavenuto (msxsdmapper),
-    its mapper off: the SPI port at 4000h-48FFh (switched on by bit 0 of
+*   `-sdmapper <slot>` - The SD Mapper of Fabio Belavenuto (msxsdmapper,
+    version 1): the SPI port at 4000h-48FFh (switched on by bit 0 of
     6001h) and two SD cards.  Its flash is a cartridge in that slot, loaded
     as usual (`-rom 5 file`, ASCII16); without one it reads FFh.
+*   `-sdmram` - Its RAM switch on, in Mapper mode: as in its CPLD, the slot
+    is expanded, the flash and the SPI port in subslot 1 and a memory
+    mapper of 512 KB (ports FCh-FFh, page n = segment n after a reset) in
+    subslot 3; 4800h reads both switches on.
+*   `-sdmlate` - (with `-sdmram`) The mapper shows up only when the BIOS
+    reads the header of the flash, after it has chosen the RAM of the
+    machine: as on an MSX1 whose own RAM comes first in the slot order.
 *   `-sdcard <image>` - The next SD card, 1 then 2 (SDHC, block addressed;
     the size is rounded down to 512 KB).  `SDM_TRACE=1` prints the commands
     the cards get on the standard error.
@@ -184,11 +191,15 @@ Two cartridges with hard disks on image files, in a cartridge slot (1 or
 *   `-hd <image>` - The next ATA disk, master then slave (LBA and CHS, PIO;
     READ/WRITE SECTORS, IDENTIFY, DIAGNOSTIC).
 
+`-nodiskrom` leaves the machine with no disk interface (no Disk ROM in
+slot 3-1), as an MSX1 of 64 KB that starts only from a cartridge.
+
 The images are opened for writing and may be sparse and larger than 4 GB:
 
 ```bash
 ./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard card1.img -sdcard card2.img
 ./fmsx -msx2 -ram 256k -sunrise 2 -sunriserom sunrise.rom -hd master.img -hd slave.img
+./fmsx -msx1 -ram 64k -nodiskrom -rom 5 sdmapper.rom -sdmapper 1 -sdmram -sdcard card1.img
 ```
 
 ## Disk Usage

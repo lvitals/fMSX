@@ -14,6 +14,7 @@
 #include "GDBStub.h"
 #include "MSX.h"
 #include "SDMapper.h"
+extern int NoDiskROM;
 #include "SunriseIDE.h"
 #include "Help.h"
 #include "EMULib.h"
@@ -32,7 +33,7 @@ static const char *Options[]=
   "scale","static","nostatic","vsync","480","200",
   "scanlines","noscanlines","4x3","latency",
   "frames","keys","dumpscreen","dumpvram","gdb","debugger",
-  "sdmapper","sdcard","sunrise","sunriserom","hd",
+  "sdmapper","sdcard","sunrise","sunriserom","hd","sdmram","nodiskrom","sdmlate",
   0
 };
 
@@ -361,6 +362,9 @@ int main(int argc,char *argv[])
                  if(N>=argc) printf("%s: No hard disk image supplied\n",argv[0]);
                  else if(!SRDisk(argv[N])) printf("%s: Can't use hard disk image '%s'\n",argv[0],argv[N]);
                  break;
+        case 51: SDMRam=1;break;
+        case 52: NoDiskROM=1;break;
+        case 53: SDMLate=1;break;
 
 
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);

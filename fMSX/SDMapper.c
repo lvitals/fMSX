@@ -41,6 +41,8 @@ typedef struct
 
 int SDMSlot = -1;
 int SDMSpi  = 0;
+int SDMRam  = 0;
+int SDMLate = 0;
 
 static SDCard Cards[MAXCARDS];
 static int NCards = 0;
@@ -261,8 +263,10 @@ byte SDMRead(word A)
 
   if(A==0x4800)
   {
-    /* Missing cards read as not inserted, none protected */
-    V=0x0C;
+    /* Missing cards read as not inserted, none protected; */
+    /* b4 = 1: RAM switch on, b5 = 1: in Mapper mode (as  */
+    /* the driver reads them)                            */
+    V=0x0C|(SDMRam? 0x30:0x00);
     if(NCards<1) V|=0x01;
     if(NCards<2) V|=0x02;
     return(V);
