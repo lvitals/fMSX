@@ -34,6 +34,7 @@ static const char *Options[]=
   "scanlines","noscanlines","4x3","latency",
   "frames","keys","dumpscreen","dumpvram","gdb","debugger",
   "sdmapper","sdcard","sunrise","sunriserom","hd","sdmram","nodiskrom","sdmlate",
+  "sdcard1","sdcard2",
   0
 };
 
@@ -346,9 +347,9 @@ int main(int argc,char *argv[])
                  if(N<argc) SDMSlot=atoi(argv[N]);
                  else printf("%s: No SD Mapper slot supplied\n",argv[0]);
                  break;
-        case 47: N++;
+        case 47: case 54: case 55: N++;
                  if(N>=argc) printf("%s: No SD card image supplied\n",argv[0]);
-                 else if(!SDMCard(argv[N])) printf("%s: Can't use SD card image '%s'\n",argv[0],argv[N]);
+                 else if(!SDMCard(J==47? 0:J-53,argv[N])) printf("%s: Can't use SD card image '%s'\n",argv[0],argv[N]);
                  break;
         case 48: N++;
                  if(N<argc) SRSlot=atoi(argv[N]);

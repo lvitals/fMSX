@@ -45,20 +45,23 @@ int SDMRam  = 0;
 int SDMLate = 0;
 
 static SDCard Cards[MAXCARDS];
-static int NCards = 0;
 static byte CS    = 0x03;   /* Chip selects, 0 = selected    */
 static byte Port1 = 0xFF;   /* Byte of the last transfer     */
 
 /** SDMCard() ************************************************/
-/** Attach an image file as the next card.                  **/
+/** Attach an image file as card N (1 or 2), or as the next **/
+/** free one with N = 0.                                    **/
 /*************************************************************/
-int SDMCard(const char *FileName)
+int SDMCard(int N,const char *FileName)
 {
   SDCard *C;
   off_t Size;
 
-  if(NCards>=MAXCARDS) return(0);
-  C=&Cards[NCards];
+  if(!N)
+    for(N=1;(N<=MAXCARDS)&&Cards[N-1].F;++N);
+  if((N<1)||(N>MAXCARDS)) return(0);
+  C=&Cards[N-1];
+  if(C->F) fclose(C->F);
   memset(C,0,sizeof(*C));
   C->F=fopen(FileName,"r+b");
   if(!C->F) return(0);
@@ -67,7 +70,6 @@ int SDMCard(const char *FileName)
   /* SDHC sizes go in units of 512kB */
   C->Blocks=(unsigned long)(Size/512)&~1023UL;
   if(!C->Blocks) { fclose(C->F);C->F=0;return(0); }
-  NCards++;
   return(1);
 }
 
@@ -81,7 +83,7 @@ void SDMReset(void)
   SDMSpi=0;
   CS=0x03;
   Port1=0xFF;
-  for(J=0;J<NCards;++J)
+  for(J=0;J<MAXCARDS;++J)
   {
     Cards[J].Idle=0;Cards[J].App=0;Cards[J].State=ST_CMD;
     Cards[J].CmdN=0;Cards[J].OutN=Cards[J].OutP=0;
@@ -249,8 +251,8 @@ static byte Bus(byte In)
 {
   int J;
 
-  for(J=0;J<NCards;++J)
-    if(!(CS&(1<<J))) return(Transfer(&Cards[J],In));
+  for(J=0;J<MAXCARDS;++J)
+    if(Cards[J].F&&!(CS&(1<<J))) return(Transfer(&Cards[J],In));
   return(0xFF);
 }
 
@@ -267,8 +269,8 @@ byte SDMRead(word A)
     /* b4 = 1: RAM switch on, b5 = 1: in Mapper mode (as  */
     /* the driver reads them)                            */
     V=0x0C|(SDMRam? 0x30:0x00);
-    if(NCards<1) V|=0x01;
-    if(NCards<2) V|=0x02;
+    if(!Cards[0].F) V|=0x01;
+    if(!Cards[1].F) V|=0x02;
     return(V);
   }
   V=Port1;
@@ -289,7 +291,7 @@ int SDMWrite(word A,byte V)
   if(A==0x4800)
   {
     /* A card deselected forgets a half-received command */
-    for(J=0;J<NCards;++J)
+    for(J=0;J<MAXCARDS;++J)
       if(!(CS&(1<<J))&&(V&(1<<J))) Cards[J].CmdN=0;
     CS=V&0x03;
     return(1);

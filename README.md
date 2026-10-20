@@ -179,8 +179,10 @@ Two cartridges with hard disks on image files, in a cartridge slot (1 or
 *   `-sdmlate` - (with `-sdmram`) The mapper shows up only when the BIOS
     reads the header of the flash, after it has chosen the RAM of the
     machine: as on an MSX1 whose own RAM comes first in the slot order.
-*   `-sdcard <image>` - The next SD card, 1 then 2 (SDHC, block addressed;
-    the size is rounded down to 512 KB).  `SDM_TRACE=1` prints the commands
+*   `-sdcard <image>` - The next free SD card, 1 then 2 (SDHC, block
+    addressed; the size is rounded down to 512 KB).
+*   `-sdcard1 <image>`, `-sdcard2 <image>` - The SD card of that slot of
+    the cartridge; the other one may stay empty.  `SDM_TRACE=1` prints the commands
     the cards get on the standard error.
 *   `-sunrise <slot>` - The Sunrise IDE, as in openMSX: the flash in banks
     of 16 KB at 4000h-7FFFh (bits 7-3 of 4104h, in reverse order, choose
@@ -198,6 +200,7 @@ The images are opened for writing and may be sparse and larger than 4 GB:
 
 ```bash
 ./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard card1.img -sdcard card2.img
+./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard1 system.img -sdcard2 data.img
 ./fmsx -msx2 -ram 256k -sunrise 2 -sunriserom sunrise.rom -hd master.img -hd slave.img
 ./fmsx -msx1 -ram 64k -nodiskrom -rom 5 sdmapper.rom -sdmapper 1 -sdmram -sdcard card1.img
 ```

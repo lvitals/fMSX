@@ -35,7 +35,7 @@ extern int SDMLate;         /* 1: its RAM shows up only once */
 #define SDMRAMSUB  3             /* Subslot of the mapper     */
 #define SDMRAMSEGS 32            /* 16kB segments of it       */
 
-int  SDMCard(const char *FileName); /* Attach the next card  */
+int  SDMCard(int N,const char *FileName); /* Card N, 0 = next */
 void SDMReset(void);                /* Reset of the machine  */
 byte SDMRead(word A);               /* Read, SPI on, 4000h-4800h */
 int  SDMWrite(word A,byte V);       /* Write in page 1: 1 if taken */
