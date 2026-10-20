@@ -179,6 +179,13 @@ Two cartridges with hard disks on image files, in a cartridge slot (1 or
 *   `-sdmlate` - (with `-sdmram`) The mapper shows up only when the BIOS
     reads the header of the flash, after it has chosen the RAM of the
     machine: as on an MSX1 whose own RAM comes first in the slot order.
+*   `-sdmv2` - (with `-sdmapper`) The SD Mapper v2 (msxsdmapperv2): the
+    flash page of 4000h-7FFFh is written at 6000h-67FFh, and with page 7
+    there the SPI data is at 7B00h-7EFFh; 7FF0h selects the cards (b0, b1:
+    1 = selected) and reads, with none selected, the RAM switch in b0, or
+    the status of the one selected (b1: 0 = inserted, b2: 1 = protected);
+    the timer at 7FF1h reads 0.  With `-sdmram` the flash is in subslot 0
+    and the mapper in subslot 1.
 *   `-sdcard <image>` - The next free SD card, 1 then 2 (SDHC, block
     addressed; the size is rounded down to 512 KB).
 *   `-sdcard1 <image>`, `-sdcard2 <image>` - The SD card of that slot of
@@ -201,6 +208,7 @@ The images are opened for writing and may be sparse and larger than 4 GB:
 ```bash
 ./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard card1.img -sdcard card2.img
 ./fmsx -msx2 -ram 256k -rom 5 sdmapper.rom -sdmapper 1 -sdcard1 system.img -sdcard2 data.img
+./fmsx -msx1 -ram 64k -nodiskrom -rom 5 sdmapperv2.rom -sdmapper 1 -sdmv2 -sdmram -sdcard1 card1.img
 ./fmsx -msx2 -ram 256k -sunrise 2 -sunriserom sunrise.rom -hd master.img -hd slave.img
 ./fmsx -msx1 -ram 64k -nodiskrom -rom 5 sdmapper.rom -sdmapper 1 -sdmram -sdcard card1.img
 ```

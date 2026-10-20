@@ -1169,14 +1169,17 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
   if(NoDiskROM) MemMap[3][1][2]=MemMap[3][1][3]=EmptyRAM;
 
   /* The SD Mapper with its mapper on: the flash goes to */
-  /* subslot 1, the mapper to subslot 3                  */
+  /* subslot 1, the mapper to subslot 3 (v2: the flash in */
+  /* subslot 0, the mapper in subslot 1)                 */
   if(SDMRam&&(SDMSlot>=1)&&(SDMSlot<=2))
   {
     if(!SDMRAMData) SDMRAMData=malloc(SDMRAMSEGS*0x4000);
     if(SDMRAMData)
     {
       for(J=0;J<8;++J)
-        if((MemMap[SDMSlot][0][J]!=EmptyRAM)&&(MemMap[SDMSlot][0][J]!=EmptyRAM+0x2000))
+        if(SDMV2)
+          MemMap[SDMSlot][2][J]=MemMap[SDMSlot][3][J]=EmptyRAM;
+        else if((MemMap[SDMSlot][0][J]!=EmptyRAM)&&(MemMap[SDMSlot][0][J]!=EmptyRAM+0x2000))
         {
           MemMap[SDMSlot][1][J]=MemMap[SDMSlot][0][J];
           MemMap[SDMSlot][0][J]=MemMap[SDMSlot][2][J]=EmptyRAM;
@@ -1212,7 +1215,7 @@ byte RdZ80(word A)
   { SDMRamOn=1;SDMMapRAM(); }
 
   /* SD Mapper: the SPI port, when it is on */
-  if(SDMSpi&&((A&0xC000)==0x4000)&&(A<=0x4800)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB))
+  if(SDMSpi&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB)&&SDMPort(A))
     return(SDMRead(A));
 
   /* Sunrise IDE: the IDE registers, when they are on */

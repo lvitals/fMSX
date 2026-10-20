@@ -43,10 +43,12 @@ int SDMSlot = -1;
 int SDMSpi  = 0;
 int SDMRam  = 0;
 int SDMLate = 0;
+int SDMV2   = 0;
 
 static SDCard Cards[MAXCARDS];
 static byte CS    = 0x03;   /* Chip selects, 0 = selected    */
 static byte Port1 = 0xFF;   /* Byte of the last transfer     */
+static byte Page1 = 0;      /* v2: flash page of 4000h-7FFFh */
 
 /** SDMCard() ************************************************/
 /** Attach an image file as card N (1 or 2), or as the next **/
@@ -80,9 +82,10 @@ void SDMReset(void)
 {
   int J;
 
-  SDMSpi=0;
+  SDMSpi=SDMV2;            /* v2: 7FF0h-7FF1h always there */
   CS=0x03;
   Port1=0xFF;
+  Page1=0;
   for(J=0;J<MAXCARDS;++J)
   {
     Cards[J].Idle=0;Cards[J].App=0;Cards[J].State=ST_CMD;
@@ -256,13 +259,36 @@ static byte Bus(byte In)
   return(0xFF);
 }
 
+/** SDMPort() ************************************************/
+/** 1 if a read of A in page 1 of the slot, with the SPI    **/
+/** port on, is the port.                                   **/
+/*************************************************************/
+int SDMPort(word A)
+{
+  if(!SDMV2) return(A<=0x4800);
+  return((A==0x7FF0)||(A==0x7FF1)||((Page1==7)&&(A>=0x7B00)&&(A<0x7F00)));
+}
+
 /** SDMRead() ************************************************/
-/** A read of 4000h-4800h of the slot with the SPI port on. **/
+/** A read of the SPI port (SDMPort()).                     **/
 /*************************************************************/
 byte SDMRead(word A)
 {
   byte V;
 
+  if(SDMV2&&(A==0x7FF1)) return(0x00);
+  if(SDMV2&&(A==0x7FF0))
+  {
+    /* No card selected: the switches, b0 = RAM on, b1 = */
+    /* the half of the flash; one: inserted, protected  */
+    switch(~CS&0x03)
+    {
+      case 0:  return(SDMRam? 0x01:0x00);
+      case 1:  return(Cards[0].F? 0x00:0x02);
+      case 2:  return(Cards[1].F? 0x00:0x02);
+      default: return(0xFF);
+    }
+  }
   if(A==0x4800)
   {
     /* Missing cards read as not inserted, none protected; */
@@ -286,6 +312,22 @@ int SDMWrite(word A,byte V)
 {
   int J;
 
+  if(SDMV2)
+  {
+    /* The flash page: the cartridge maps it as well */
+    if((A>=0x6000)&&(A<0x6800)) { Page1=V&0x07;return(0); }
+    if(A==0x7FF1) return(1);
+    if(A==0x7FF0)
+    {
+      V=~V&0x03;
+      for(J=0;J<MAXCARDS;++J)
+        if(!(CS&(1<<J))&&(V&(1<<J))) Cards[J].CmdN=0;
+      CS=V;
+      return(1);
+    }
+    if((Page1==7)&&(A>=0x7B00)&&(A<0x7F00)) { Port1=Bus(V);return(1); }
+    return(0);
+  }
   if(A==0x6001) { SDMSpi=V&0x01;return(1); }
   if(!SDMSpi||(A>0x4800)) return(0);
   if(A==0x4800)

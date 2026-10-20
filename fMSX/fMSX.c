@@ -34,7 +34,7 @@ static const char *Options[]=
   "scanlines","noscanlines","4x3","latency",
   "frames","keys","dumpscreen","dumpvram","gdb","debugger",
   "sdmapper","sdcard","sunrise","sunriserom","hd","sdmram","nodiskrom","sdmlate",
-  "sdcard1","sdcard2",
+  "sdcard1","sdcard2","sdmv2",
   0
 };
 
@@ -366,6 +366,7 @@ int main(int argc,char *argv[])
         case 51: SDMRam=1;break;
         case 52: NoDiskROM=1;break;
         case 53: SDMLate=1;break;
+        case 56: SDMV2=1;break;
 
 
         default: printf("%s: Wrong option '%s'\n",argv[0],argv[N]);
