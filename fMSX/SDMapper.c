@@ -44,11 +44,27 @@ int SDMSpi  = 0;
 int SDMRam  = 0;
 int SDMLate = 0;
 int SDMV2   = 0;
+int SDMMega = 0;
 
 static SDCard Cards[MAXCARDS];
 static byte CS    = 0x03;   /* Chip selects, 0 = selected    */
 static byte Port1 = 0xFF;   /* Byte of the last transfer     */
 static byte Page1 = 0;      /* v2: flash page of 4000h-7FFFh */
+static byte Page2 = 0;      /* v2: of 8000h-BFFFh, b3: flash */
+static byte Port5F = 0;     /* v1: b7 flash writes, b2-b0 page */
+
+/* The flash chip: the cartridge ROM of the slot */
+extern byte *ROMData[];
+extern byte ROMMask[];
+extern char *ROMName[];
+
+#define FM_READ 0
+#define FM_ID   1
+#define FM_PROG 2
+static int FMode  = FM_READ;
+static int FCycle = 0;      /* unlock cycles seen            */
+static int FErase = 0;      /* 80h seen: an erase follows    */
+static int FDirty = 0;      /* written: saved on exit        */
 
 /** SDMCard() ************************************************/
 /** Attach an image file as card N (1 or 2), or as the next **/
@@ -85,7 +101,8 @@ void SDMReset(void)
   SDMSpi=SDMV2;            /* v2: 7FF0h-7FF1h always there */
   CS=0x03;
   Port1=0xFF;
-  Page1=0;
+  Page1=Page2=Port5F=0;
+  FMode=FM_READ;FCycle=FErase=0;
   for(J=0;J<MAXCARDS;++J)
   {
     Cards[J].Idle=0;Cards[J].App=0;Cards[J].State=ST_CMD;
@@ -314,8 +331,9 @@ int SDMWrite(word A,byte V)
 
   if(SDMV2)
   {
-    /* The flash page: the cartridge maps it as well */
+    /* The flash pages: the cartridge maps them as well */
     if((A>=0x6000)&&(A<0x6800)) { Page1=V&0x07;return(0); }
+    if((A>=0x7000)&&(A<0x7800)) { Page2=V&0x0F;return(0); }
     if(A==0x7FF1) return(1);
     if(A==0x7FF0)
     {
@@ -340,4 +358,129 @@ int SDMWrite(word A,byte V)
   }
   Port1=Bus(V);
   return(1);
+}
+
+/** The flash chip *******************************************/
+
+/* The ROM of the cartridge in SDMSlot and its size */
+static byte *Flash(int *Size)
+{
+  int I=SDMSlot-1;
+
+  if((I<0)||(I>1)||!ROMData[I]) return(0);
+  *Size=((int)ROMMask[I]+1)*0x2000;
+  return(ROMData[I]);
+}
+
+/* The address in the chip of a read or write of A */
+static unsigned long FlashAddr(word A)
+{
+  return((unsigned long)((SDMV2? Page2:Port5F)&0x07)*0x4000+(A&0x3FFF));
+}
+
+/** SDMFlashAt() *********************************************/
+/** 1 if a read of A, in pages 1-2 of the slot, goes to the **/
+/** flash chip rather than to the ROM pages.                **/
+/*************************************************************/
+int SDMFlashAt(word A)
+{
+  if(!SDMV2) return(Port5F&0x80? 1:0);
+  return((A>=0x8000)&&(Page2&0x08)? 1:0);
+}
+
+/** SDMFlashRd() *********************************************/
+/** A read of the flash chip: its IDs in the ID mode.       **/
+/*************************************************************/
+byte SDMFlashRd(word A)
+{
+  unsigned long F=FlashAddr(A);
+  byte *P;
+  int Size;
+
+  if(FMode==FM_ID)
+    return(F&1? (SDMV2? 0xB6:0x20):(SDMV2? 0xBF:0x01));
+  P=Flash(&Size);
+  return(P? P[F%Size]:0xFF);
+}
+
+/** SDMFlashWr() *********************************************/
+/** A write to pages 1-2 of the slot: 1 if it is a write to **/
+/** the flash chip, a command or data.                      **/
+/*************************************************************/
+int SDMFlashWr(word A,byte V)
+{
+  unsigned long F,S;
+  byte *P;
+  int Size;
+  word C;
+
+  if(SDMV2? ((A<0x8000)||!(Page2&0x08)):!(Port5F&0x80)) return(0);
+  F=FlashAddr(A);
+  C=F&0x7FFF;
+  P=Flash(&Size);
+  if(!P) return(1);
+  if(FMode==FM_PROG)
+  {
+    /* The byte after A0h is data, whatever it is; a */
+    /* program can only clear bits                    */
+    P[F%Size]&=V;
+    FDirty=1;
+    FMode=FM_READ;
+    return(1);
+  }
+  if(V==0xF0) { FMode=FM_READ;FCycle=FErase=0;return(1); }
+  switch(FCycle)
+  {
+    case 0: FCycle=(C==0x5555)&&(V==0xAA)? 1:0;break;
+    case 1: FCycle=(C==0x2AAA)&&(V==0x55)? 2:0;break;
+    default:
+      FCycle=0;
+      if(FErase)
+      {
+        FErase=0;
+        if((C==0x5555)&&(V==0x10)) { memset(P,0xFF,Size);FDirty=1; }
+        else if(V==0x30)
+        {
+          S=SDMV2? 0x1000:0x4000;
+          memset(P+((F%Size)&~(S-1)),0xFF,S);
+          FDirty=1;
+        }
+      }
+      else if(C==0x5555)
+        switch(V)
+        {
+          case 0x90: FMode=FM_ID;break;
+          case 0xA0: FMode=FM_PROG;break;
+          case 0x80: FErase=1;break;
+        }
+      break;
+  }
+  return(1);
+}
+
+/** SDMOut5F() ***********************************************/
+/** v1: a write to port 5Fh.                                **/
+/*************************************************************/
+void SDMOut5F(byte V)
+{
+  Port5F=V;
+}
+
+/** SDMTrash() ***********************************************/
+/** At the exit: a written flash goes back to its file.     **/
+/*************************************************************/
+void SDMTrash(void)
+{
+  FILE *F;
+  byte *P;
+  int Size;
+
+  if(!FDirty||!(P=Flash(&Size))||!ROMName[SDMSlot-1]) return;
+  if((F=fopen(ROMName[SDMSlot-1],"wb")))
+  {
+    if(fwrite(P,1,Size,F)!=Size)
+      fprintf(stderr,"SD Mapper: can't write the flash to '%s'\n",ROMName[SDMSlot-1]);
+    fclose(F);
+  }
+  FDirty=0;
 }

@@ -186,6 +186,16 @@ Two cartridges with hard disks on image files, in a cartridge slot (1 or
     the status of the one selected (b1: 0 = inserted, b2: 1 = protected);
     the timer at 7FF1h reads 0.  With `-sdmram` the flash is in subslot 0
     and the mapper in subslot 1.
+*   The flash of the SD Mapper takes the commands of a flash chip (the
+    IDs of an AM29F010 on the v1, of an SST39SF020 on the v2; program,
+    chip and sector erase): on the v1 through port 5Fh (b7 = 1: the reads
+    and writes of pages 1-2 go to the flash page b2-b0), on the v2 in
+    8000h-BFFFh with b3 of 7000h set.  A written flash is saved back to
+    its ROM file on exit.
+*   `-sdmmega` - (with `-sdmram`, v1) A MegaRAM of 512 KB in subslot 2
+    too, as the clones of the v1 sold as "1 MB": 8 KB banks at
+    4000h-BFFFh; after `OUT (8Eh)` the writes go to its RAM, after
+    `IN (8Eh)` they choose the bank of their 8 KB.
 *   `-sdcard <image>` - The next free SD card, 1 then 2 (SDHC, block
     addressed; the size is rounded down to 512 KB).
 *   `-sdcard1 <image>`, `-sdcard2 <image>` - The SD card of that slot of

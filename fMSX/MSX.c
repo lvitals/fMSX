@@ -247,6 +247,23 @@ static void SDMMapRAM(void)
   }
 }
 
+/** The MegaRAM of the SD Mapper (-sdmmega) ******************/
+static byte *SDMMegaData = 0;
+static byte SDMMegaBank[4];   /* 8kB banks of 4000h-BFFFh       */
+static int  SDMMegaWrite = 0; /* 1: writes go to its RAM        */
+
+/** Map the banks of the MegaRAM in MemMap and in RAM[]     **/
+static void SDMMegaMap(void)
+{
+  int J;
+  for(J=0;J<4;++J)
+  {
+    MemMap[SDMSlot][SDMMEGASUB][J+2]=SDMMegaData+((int)SDMMegaBank[J]<<13);
+    if((PSL[(J+2)>>1]==SDMSlot)&&(SSL[(J+2)>>1]==SDMMEGASUB))
+      RAM[J+2]=MemMap[SDMSlot][SDMMEGASUB][J+2];
+  }
+}
+
 /** RAM in page J (I = 2*J) of slot PS:SS: the internal one **/
 /** of 3:2, or the mapper of the SD Mapper                  **/
 #define ISRAM(PS,SS,J,I) \
@@ -764,6 +781,9 @@ void TrashMSX(void)
   /* gdb: the program exited */
   GDBStop();
 
+  /* SD Mapper: a written flash goes back to its file */
+  SDMTrash();
+
   /* CMOS.ROM is saved in the program directory */
   if(ProgDir && chdir(ProgDir))
   { if(Verbose) printf("Failed changing to '%s' directory!\n",ProgDir); }
@@ -1187,6 +1207,15 @@ int ResetMSX(int NewMode,int NewRAMPages,int NewVRAMPages)
       for(J=0;J<4;++J) SDMMapper[J]=J;
       SDMRamOn=!SDMLate;
       SDMMapRAM();
+      /* The MegaRAM of the clones, in subslot 2 */
+      if(SDMMega&&!SDMV2&&(SDMMegaData||(SDMMegaData=malloc(SDMMEGABANKS*0x2000))))
+      {
+        memset(SDMMegaData,0xFF,SDMMEGABANKS*0x2000);
+        for(J=0;J<4;++J) SDMMegaBank[J]=J;
+        SDMMegaWrite=0;
+        SDMMegaMap();
+      }
+      else SDMMega=0;
     }
     else SDMRam=0;
   }
@@ -1213,6 +1242,10 @@ byte RdZ80(word A)
   /* read, after the BIOS has chosen the RAM of the machine    */
   if(!SDMRamOn&&(A==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB))
   { SDMRamOn=1;SDMMapRAM(); }
+
+  /* SD Mapper: its flash chip, while it is written */
+  if((SDMSlot>=0)&&(A>=0x4000)&&(A<0xC000)&&(PSL[A>>14]==SDMSlot)&&(SSL[A>>14]==SDMSUB)&&SDMFlashAt(A))
+    return(SDMFlashRd(A));
 
   /* SD Mapper: the SPI port, when it is on */
   if(SDMSpi&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB)&&SDMPort(A))
@@ -1256,6 +1289,18 @@ byte RdZ80(word A)
 /*************************************************************/
 void WrZ80(word A,byte V)
 {
+  /* SD Mapper: its MegaRAM, its RAM or its bank registers */
+  if(SDMMega&&(A>=0x4000)&&(A<0xC000)&&(PSL[A>>14]==SDMSlot)&&(SSL[A>>14]==SDMMEGASUB))
+  {
+    if(SDMMegaWrite) RAM[A>>13][A&0x1FFF]=V;
+    else { SDMMegaBank[(A>>13)-2]=V&(SDMMEGABANKS-1);SDMMegaMap(); }
+    return;
+  }
+
+  /* SD Mapper: its flash chip */
+  if((SDMSlot>=0)&&(A>=0x4000)&&(A<0xC000)&&(PSL[A>>14]==SDMSlot)&&(SSL[A>>14]==SDMSUB)&&SDMFlashWr(A,V))
+    return;
+
   /* SD Mapper: the SPI port and its mode register */
   if((SDMSlot>=0)&&((A&0xC000)==0x4000)&&(PSL[1]==SDMSlot)&&(SSL[1]==SDMSUB)&&SDMWrite(A,V))
     return;
@@ -1316,6 +1361,9 @@ byte InZ80(word Port)
 {
   /* MSX only uses 256 IO ports */
   Port&=0xFF;
+
+  /* SD Mapper: its MegaRAM, the writes choose its banks */
+  if((Port==0x8E)&&SDMMega) { SDMMegaWrite=0;return(0xFF); }
 
   /* Return an appropriate port value */
   switch(Port)
@@ -1478,6 +1526,13 @@ void OutZ80(word Port,byte Value)
   register byte I,J;
 
   Port&=0xFF;
+
+  /* SD Mapper v1: the flash write port */
+  if((Port==0x5F)&&(SDMSlot>=0)&&!SDMV2) { SDMOut5F(Value);return; }
+
+  /* SD Mapper: its MegaRAM takes the writes */
+  if((Port==0x8E)&&SDMMega) { SDMMegaWrite=1;return; }
+
   switch(Port)
   {
 
